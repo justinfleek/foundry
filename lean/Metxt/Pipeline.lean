@@ -1,0 +1,14 @@
+-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+--                                                          // metxt // pipeline
+-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+--
+-- Pipeline Effect Proofs
+--
+-- Graded monad definitions and laws for the brand ingestion pipeline
+--
+-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+-- Re-export pipeline modules (to be created)
+-- import Metxt.Pipeline.Effect
+-- import Metxt.Pipeline.Agent
+-- import Metxt.Pipeline.Budget

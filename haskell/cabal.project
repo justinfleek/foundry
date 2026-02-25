@@ -1,0 +1,23 @@
+-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+--                                                     // metxt // cabal.project
+-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+--
+-- Cabal project configuration for metxt Haskell packages
+--
+-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+packages:
+  metxt-core/
+  -- metxt-extract/
+  -- metxt-scraper/
+  -- metxt-storage/
+
+-- Use GHC 9.10 for stability
+with-compiler: ghc-9.10
+
+-- Optimization
+optimization: 2
+
+-- Test settings
+tests: True
+test-show-details: streaming

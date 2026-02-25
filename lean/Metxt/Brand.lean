@@ -1,0 +1,19 @@
+-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+--                                                             // metxt // brand
+-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+--
+-- Brand Schema Proofs
+--
+-- Imports all brand-related proof modules
+--
+-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+-- Re-export brand modules (to be created)
+-- import Metxt.Brand.Identity
+-- import Metxt.Brand.Palette
+-- import Metxt.Brand.Typography
+-- import Metxt.Brand.Spacing
+-- import Metxt.Brand.Voice
+-- import Metxt.Brand.Strategy
+-- import Metxt.Brand.Editorial
+-- import Metxt.Brand.Provenance

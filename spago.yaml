@@ -1,0 +1,35 @@
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#                                                              // metxt // spago
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#
+# SMART Brand Ingestion Engine - PureScript Schema Layer
+#
+# This package defines the typed Brand schemas that:
+#   1. Are proven correct in Lean4 (lean/Metxt/Brand/*)
+#   2. Are consumed by the Haskell extraction pipeline (metxt-*)
+#   3. Are rendered by agents for brand-consistent UI generation
+#
+# Build: spago build
+# Test:  spago test
+# REPL:  spago repl
+#
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+package:
+  name: metxt-brand
+  dependencies:
+    - arrays
+    - effect
+    - integers
+    - maybe
+    - newtype
+    - numbers
+    - prelude
+    - strings
+  build:
+    strict: true
+
+workspace:
+  packageSet:
+    registry: 59.2.0
+  extraPackages: {}
