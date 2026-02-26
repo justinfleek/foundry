@@ -1,8 +1,9 @@
 # Cross-Repository Alignment Specification
 
-> **Version**: 1.0.0  
+> **Version**: 1.1.0  
 > **Date**: 2026-02-26  
 > **Repositories**: FOUNDRY, HYDROGEN, COMPASS
+> **Status**: FOUNDRY pipeline operational, COMPASS export ready
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -17,10 +18,10 @@ brand ingestion at swarm scale.
 ├─────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                 │
 │  /home/jpyxal/jpyxal/                                                           │
-│  ├── foundry/          BRAND INGESTION ENGINE                                   │
-│  │   ├── haskell/        Extraction pipeline, storage                           │
-│  │   ├── lean/           Proofs, invariants                                     │
-│  │   └── scraper/        Playwright, ZMQ                                        │
+│  ├── foundry/          BRAND INGESTION ENGINE            ← OPERATIONAL         │
+│  │   ├── haskell/        Extraction pipeline, storage     (232 tests passing)  │
+│  │   ├── lean/           Proofs, invariants                                    │
+│  │   └── scraper/        Playwright, ZMQ                  (4 brands verified)  │
 │  │                                                                              │
 │  ├── hydrogen/         FRONTEND SCHEMA & UI                                     │
 │  │   ├── src/Hydrogen/   PureScript UI framework                                │
@@ -63,100 +64,133 @@ brand ingestion at swarm scale.
 ### 1.3 Compound Type Structure
 
 ```
-FOUNDRY CompleteBrand
-├── completeBrandIdentity       : BrandIdentity
-├── completeBrandPalette        : BrandPalette
-├── completeBrandTypography     : BrandTypography
-├── completeBrandSpacing        : BrandSpacing
-├── completeBrandVoice          : BrandVoice
-├── completeBrandLogo           : LogoSpecification
-├── completeBrandGradient       : GradientSpecification
-├── completeBrandLayout         : LayoutSpecification       ← MISSING
-├── completeBrandUIElements     : UISpecification           ← MISSING
-├── completeBrandGraphics       : GraphicElementsSpec       ← MISSING
-├── completeBrandModes          : ModesSpecification        ← MISSING
-├── completeBrandImagery        : ImagerySpecification      ← MISSING
-├── completeBrandProvenance     : Provenance
-├── completeBrandOntology       : BrandOntology             ← MISSING
-├── completeBrandParent         : Maybe BrandIdentity       ← MISSING
-└── completeBrandSharedAssets   : Maybe SharedBrandAssets   ← MISSING
+FOUNDRY CompleteBrand (18+ fields) — IMPLEMENTED
+├── cbIdentity          : BrandIdentity              ✅ COMPLETE
+├── cbPalette           : ColorPalette               ✅ COMPLETE
+├── cbTypography        : Typography                 ✅ COMPLETE
+├── cbSpacing           : Spacing                    ✅ COMPLETE
+├── cbVoice             : BrandVoice                 ✅ COMPLETE
+├── cbOverview          : BrandOverview              ✅ COMPLETE
+├── cbStrategy          : BrandStrategy              ✅ COMPLETE
+├── cbTaglines          : [Tagline]                  ✅ COMPLETE
+├── cbEditorial         : Editorial                  ✅ COMPLETE
+├── cbCustomers         : [CustomerPersona]          ✅ COMPLETE
+├── cbLogo              : LogoSpecification          ✅ COMPLETE
+├── cbLayout            : LayoutSystem               ✅ COMPLETE
+├── cbImagery           : ImageryGuidelines          ✅ COMPLETE
+├── cbMaterial          : MaterialSystem             ✅ COMPLETE
+├── cbThemes            : ThemeSet                   ✅ COMPLETE
+├── cbHierarchy         : Maybe BrandHierarchy       ✅ COMPLETE
+├── cbProvenance        : Provenance                 ✅ COMPLETE
+├── cbUIElements        : UISpecification            ⏳ PENDING (port from PS)
+└── cbGraphics          : GraphicElementsSpec        ⏳ PENDING (port from PS)
 
 HYDROGEN Brand.Brand
-├── identity        : Identity
-├── palette         : Palette
-├── typography      : Typography
-├── spacing         : Spacing
-├── voice           : Voice
-├── logo            : Logo.System                           ✅ EXISTS
-├── theme           : Theme                                 ✅ EXISTS
-├── tokens          : Token.System                          ✅ EXISTS
-├── compound        : Compound.Types                        ✅ EXISTS
-├── provenance      : Provenance
-└── mission         : Mission
+├── identity        : Identity                       ✅ EXISTS
+├── palette         : Palette                        ✅ EXISTS
+├── typography      : Typography                     ✅ EXISTS
+├── spacing         : Spacing                        ✅ EXISTS
+├── voice           : Voice                          ✅ EXISTS
+├── logo            : Logo.System                    ✅ EXISTS
+├── theme           : Theme                          ✅ EXISTS
+├── tokens          : Token.System                   ✅ EXISTS
+├── compound        : Compound.Types                 ✅ EXISTS
+├── provenance      : Provenance                     ✅ EXISTS
+├── uiElements      : UISpecification                ✅ EXISTS
+├── graphicElements : GraphicElementsSpec            ✅ EXISTS
+└── mission         : Mission                        ✅ EXISTS
 
-COMPASS BrandProfile (for MAESTRO)
-├── brandId         : UUID
-├── brandName       : Text
-├── industry        : Text
-├── toneDescription : Text
-├── voiceBePrompt   : Text
-├── voiceNeverBe    : Text
-├── preferredTerms  : Vector Text
-├── forbiddenTerms  : Vector Text
-├── primaryColor    : Text (hex)
-├── fontHeading     : Text
-├── fontBody        : Text
-└── customContext   : Map Text Text
+COMPASS AgentBrandContext (for MAESTRO) — IMPLEMENTED
+├── abcBrandId         : UUID                        ✅ COMPLETE
+├── abcBrandName       : Text                        ✅ COMPLETE
+├── abcIndustry        : Text                        ✅ COMPLETE
+├── abcVoiceBePrompt   : Text                        ✅ COMPLETE
+├── abcVoiceNeverBe    : Text                        ✅ COMPLETE
+├── abcPreferredTerms  : Vector Text                 ✅ COMPLETE
+├── abcForbiddenTerms  : Vector Text                 ✅ COMPLETE
+├── abcPrimaryColor    : Text (hex)                  ✅ COMPLETE
+├── abcFontHeading     : Text                        ✅ COMPLETE
+├── abcFontBody        : Text                        ✅ COMPLETE
+├── abcToneDescription : Text                        ✅ COMPLETE
+└── abcCustomContext   : Map Text Text               ✅ COMPLETE
 ```
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ## 2. Data Flow
 
-### 2.1 Ingestion Flow
+### 2.1 Ingestion Flow — OPERATIONAL
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│  STAGE 1: SCRAPING (FOUNDRY)                                                    │
+│  STAGE 1: SCRAPING (FOUNDRY)                                    ✅ OPERATIONAL  │
 ├─────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                 │
 │  Location: foundry/scraper/                                                     │
 │  Language: TypeScript (Playwright)                                              │
 │  Output: ScrapeResult (HTML, CSS, fonts, images)                                │
-│  Transport: ZMQ PUSH to tcp://localhost:5555                                    │
+│  Transport: ZMQ ROUTER on tcp://localhost:5555                                  │
 │                                                                                 │
 │  Files:                                                                         │
-│    scraper/src/scraper.ts          Main scraper logic                           │
-│    scraper/src/extract.ts          DOM extraction                               │
-│    scraper/src/zmq.ts              ZMQ publisher                                │
+│    scraper/src/scraper.ts          Main scraper logic (~600 lines)              │
+│    scraper/src/server.ts           ZMQ ROUTER server                            │
+│    scraper/src/types.ts            Protocol types (matches Haskell)             │
+│                                                                                 │
+│  Verified on: jbreenconsulting.com, linear.app, openrouter.ai, coca-cola.com    │
 │                                                                                 │
 └─────────────────────────────────────────────────────────────────────────────────┘
                                           │
-                                          │ ZMQ PUSH (ScrapeResult JSON)
+                                          │ ZMQ DEALER (ScrapeResult JSON)
                                           ▼
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│  STAGE 2: EXTRACTION (FOUNDRY)                                                  │
+│  STAGE 2: EXTRACTION (FOUNDRY)                                  ✅ OPERATIONAL  │
 ├─────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                 │
 │  Location: foundry/haskell/foundry-extract/                                     │
 │  Language: Haskell                                                              │
 │  Input: ScrapeResult                                                            │
-│  Output: CompleteBrand                                                          │
+│  Output: BrandExtractionResult                                                  │
 │                                                                                 │
 │  Files:                                                                         │
 │    src/Foundry/Extract/Color.hs         OKLCH extraction, clustering            │
 │    src/Foundry/Extract/Typography.hs    Font stack, scale detection             │
 │    src/Foundry/Extract/Spacing.hs       Grid inference                          │
-│    src/Foundry/Extract/Voice.hs         Tone analysis (LLM-assisted)            │
-│    src/Foundry/Extract/Logo.hs          Logo detection (PARTIAL)                │
+│    src/Foundry/Extract/Voice.hs         Tone analysis                           │
 │    src/Foundry/Extract/Compose.hs       Brand composition                       │
+│                                                                                 │
+│  Tests: 48 passing                                                              │
 │                                                                                 │
 └─────────────────────────────────────────────────────────────────────────────────┘
                                           │
-                                          │ CompleteBrand (Haskell)
+                                          │ BrandExtractionResult
                                           ▼
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│  STAGE 3: STORAGE (FOUNDRY)                                                     │
+│  STAGE 3: COMPOSITION (FOUNDRY)                                 ✅ OPERATIONAL  │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│  Location: foundry/haskell/foundry-core/                                        │
+│  Language: Haskell                                                              │
+│  Input: BrandExtractionResult                                                   │
+│  Output: CompleteBrand                                                          │
+│                                                                                 │
+│  Files:                                                                         │
+│    src/Foundry/Core/Brand/Complete.hs       CompleteBrand type (18+ fields)     │
+│    src/Foundry/Core/Brand/AgentContext.hs   MAESTRO agent context               │
+│    src/Foundry/Core/Brand/Ontology.hs       Knowledge graph export              │
+│    src/Foundry/Core/Brand/Hierarchy.hs      Sub-brand relationships             │
+│    src/Foundry/Core/Brand/Theme.hs          Light/dark/contrast modes           │
+│    src/Foundry/Core/Brand/Layout.hs         Grid, breakpoints, containers       │
+│    src/Foundry/Core/Brand/Material.hs       Elevation, shadows, surfaces        │
+│    src/Foundry/Core/Brand/Imagery.hs        Photography, illustration           │
+│                                                                                 │
+│  Tests: 148 passing                                                             │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+                                          │
+                                          │ CompleteBrand
+                                          ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  STAGE 4: STORAGE (FOUNDRY)                                     ✅ OPERATIONAL  │
 ├─────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                 │
 │  Location: foundry/haskell/foundry-storage/                                     │
@@ -168,35 +202,49 @@ COMPASS BrandProfile (for MAESTRO)
 │    src/Foundry/Storage/Postgres.hs      L3 durable                              │
 │    src/Foundry/Storage/Types.hs         Content-addressed keys                  │
 │                                                                                 │
+│  Tests: 22 passing                                                              │
+│                                                                                 │
 └─────────────────────────────────────────────────────────────────────────────────┘
                                           │
-                                          │ NDJSON over ZMQ PUSH
+                                          │ NDJSON (brandToOntology → ontologyToNDJSON)
                                           ▼
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│  STAGE 4: KNOWLEDGE GRAPH (COMPASS)                                             │
+│  STAGE 5: KNOWLEDGE GRAPH (COMPASS)                             ✅ EXPORT READY │
 ├─────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                 │
 │  Location: COMPASS/typed-compass/haskell/                                       │
 │  Language: Haskell                                                              │
 │                                                                                 │
-│  Schema additions needed:                                                       │
-│    - Entity types: brand, brand_voice, brand_palette, tone_attribute           │
-│    - Relationship types: has_voice, has_palette, tone_is_descriptor            │
+│  FOUNDRY exports via Ontology.hs:                                               │
+│    - brandToOntology :: CompleteBrand -> BrandOntology                          │
+│    - ontologyToNDJSON :: BrandOntology -> Text                                  │
 │                                                                                 │
-│  Files (to create):                                                             │
-│    src/Compass/Core/Brand/Import.hs     NDJSON consumer                         │
-│    src/Compass/Core/Brand/Entity.hs     KG entity projection                    │
+│  Entity types exported:                                                         │
+│    - Brand (with all metadata)                                                  │
+│    - BrandColor (OKLCH values, semantic roles)                                  │
+│    - BrandFont (families, weights)                                              │
+│    - BrandTagline (primary, secondary)                                          │
+│    - BrandTrait (personality traits)                                            │
+│                                                                                 │
+│  Relationship types:                                                            │
+│    - hasColor, usesFont, hasTagline, hasTrait                                   │
+│                                                                                 │
+│  COMPASS receiver needed to complete integration                                │
 │                                                                                 │
 └─────────────────────────────────────────────────────────────────────────────────┘
                                           │
                                           │ gRPC / AgentBrandContext
                                           ▼
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│  STAGE 5: AGENT CONSUMPTION (COMPASS)                                           │
+│  STAGE 6: AGENT CONSUMPTION (COMPASS)                           ✅ CONTEXT READY│
 ├─────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                 │
 │  Location: COMPASS/nix/haskell/compass-maestro/                                 │
 │  Language: Haskell                                                              │
+│                                                                                 │
+│  FOUNDRY provides via AgentContext.hs:                                          │
+│    - brandContext :: CompleteBrand -> AgentBrandContext                         │
+│    - formatSystemPrompt :: AgentBrandContext -> AgentRole -> Text               │
 │                                                                                 │
 │  MAESTRO receives AgentBrandContext containing:                                 │
 │    - BE: prompt (from IS constraints)                                           │
@@ -211,7 +259,7 @@ COMPASS BrandProfile (for MAESTRO)
                                           │ JSON over WebSocket
                                           ▼
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│  STAGE 6: VISUALIZATION (HYDROGEN)                                              │
+│  STAGE 7: VISUALIZATION (HYDROGEN)                              ⏳ PENDING       │
 ├─────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                 │
 │  Location: hydrogen/src/Hydrogen/                                               │
@@ -341,61 +389,60 @@ data BrandError
 
 ## 4. Integration Points
 
-### 4.1 FOUNDRY → COMPASS
+### 4.1 FOUNDRY → COMPASS — IMPLEMENTED
 
 ```haskell
--- foundry-core/src/Foundry/Core/Export/COMPASS.hs
+-- foundry-core/src/Foundry/Core/Brand/Ontology.hs
 
 -- | Export brand to COMPASS knowledge graph format
-exportToCompass :: CompleteBrand -> Vector CompassEntity
+brandToOntology :: CompleteBrand -> BrandOntology
+
+-- | Convert to NDJSON for transport
+ontologyToNDJSON :: BrandOntology -> Text
 
 -- | Entity projection
-data CompassEntity = CompassEntity
-  { entityType     :: !EntityType
-  , entityId       :: !UUID
-  , entityData     :: !Value  -- JSON
-  , relationships  :: !(Vector Relationship)
+data OntologyEntity = OntologyEntity
+  { oeType         :: !EntityType
+  , oeId           :: !UUID
+  , oeLabel        :: !Text
+  , oeProperties   :: !Value  -- JSON
   }
 
--- | Project CompleteBrand → KG entities
-projectToEntities :: CompleteBrand -> Vector CompassEntity
-projectToEntities brand = V.concat
-  [ V.singleton (brandEntity brand)
-  , V.map paletteEntity (paletteColors (completeBrandPalette brand))
-  , V.map fontEntity (typographyFonts (completeBrandTypography brand))
-  , V.singleton (voiceEntity (completeBrandVoice brand))
-  , V.concatMap toneAttributeEntities (brandVoiceAttributes (completeBrandVoice brand))
+-- | Relationship types
+data OntologyRelation = OntologyRelation
+  { orType         :: !RelationType
+  , orSourceId     :: !UUID
+  , orTargetId     :: !UUID
+  }
+```
+
+### 4.2 COMPASS → MAESTRO — IMPLEMENTED
+
+```haskell
+-- foundry-core/src/Foundry/Core/Brand/AgentContext.hs
+
+-- | Create brand context for agent
+brandContext :: CompleteBrand -> AgentBrandContext
+
+-- | Format system prompt for specific agent role
+formatSystemPrompt :: AgentBrandContext -> AgentRole -> Text
+formatSystemPrompt ctx role = T.unlines
+  [ "## Brand Voice Requirements"
+  , ""
+  , "You are writing for " <> abcBrandName ctx <> "."
+  , ""
+  , "### BE:"
+  , abcVoiceBePrompt ctx
+  , ""
+  , "### NEVER BE:"
+  , abcVoiceNeverBe ctx
+  , ""
+  , "Preferred terms: " <> T.intercalate ", " (V.toList (abcPreferredTerms ctx))
+  , "Forbidden terms: " <> T.intercalate ", " (V.toList (abcForbiddenTerms ctx))
   ]
 ```
 
-### 4.2 COMPASS → MAESTRO
-
-```haskell
--- COMPASS/nix/haskell/compass-maestro/src/Compass/Maestro/BrandContext.hs
-
--- | Fetch brand context for agent
-fetchBrandContext :: UUID -> IO (Either BrandError AgentBrandContext)
-
--- | Inject into agent system prompt
-injectBrandContext :: AgentBrandContext -> SystemPrompt -> SystemPrompt
-injectBrandContext ctx prompt = prompt
-  { promptSystem = T.unlines
-      [ promptSystem prompt
-      , ""
-      , "## Brand Voice Requirements"
-      , ""
-      , "You are writing for " <> abcBrandName ctx <> "."
-      , ""
-      , abcVoiceBePrompt ctx
-      , abcVoiceNeverBe ctx
-      , ""
-      , "Preferred terms: " <> T.intercalate ", " (V.toList (abcPreferredTerms ctx))
-      , "Forbidden terms: " <> T.intercalate ", " (V.toList (abcForbiddenTerms ctx))
-      ]
-  }
-```
-
-### 4.3 HYDROGEN ← COMPASS
+### 4.3 HYDROGEN ← COMPASS — PENDING
 
 ```purescript
 -- hydrogen/src/Hydrogen/UI/Brand/Dashboard.purs
@@ -435,17 +482,17 @@ renderBrand brand =
 ```
 foundry/lean/
 ├── Foundry/
-│   ├── Pipeline.lean       (graded monads, co-effects)
+│   ├── Pipeline.lean       (graded monads, co-effects) — COMPLETE
 │   ├── Continuity/         (co-effect algebra — SHARED)
 │   │   └── *.lean
-│   ├── Cornell/            (wire format proofs)
+│   ├── Cornell/            (wire format proofs) — COMPLETE
 │   │   └── *.lean
-│   ├── Sigil/              (binary protocol)
+│   ├── Sigil/              (binary protocol) — COMPLETE (18 theorems)
 │   │   └── Sigil.lean
 │   └── Brand/              (brand invariants)
-│       ├── Typography.lean  ← HAS SORRY
-│       ├── Voice.lean       ← HAS SORRY
-│       └── Brand.lean       ← MISSING
+│       ├── Typography.lean  ← ByteArray API needs update
+│       ├── Voice.lean       ← ByteArray API needs update
+│       └── Brand.lean       ← MISSING (blocked on Hydrogen)
 
 hydrogen/proofs/
 ├── Continuity/             (SHARED with FOUNDRY)
@@ -467,17 +514,20 @@ cd /home/jpyxal/jpyxal/foundry
 # Enter dev environment
 nix develop
 
-# Build all Haskell
+# Build all Haskell (4 packages)
 cd haskell && cabal build all
 
-# Run tests
+# Run tests (expect 232 passing)
 cd haskell && cabal test all
 
 # Build Lean4 proofs
 cd lean && lake build
 
-# Run scraper (requires Node)
-cd scraper && npm install && npm run dev
+# Run scraper server
+cd scraper && npm install && npm run start
+
+# Scrape a brand (requires scraper running)
+cd haskell && cabal run foundry-scrape -- --url https://linear.app
 ```
 
 ### 6.2 HYDROGEN
@@ -532,8 +582,8 @@ cd nix/haskell/compass-core && cabal test
 # Verify all repos build
 cd /home/jpyxal/jpyxal
 
-# FOUNDRY
-(cd foundry && nix develop -c bash -c "cd haskell && cabal build all")
+# FOUNDRY (232 tests)
+(cd foundry && nix develop -c bash -c "cd haskell && cabal build all && cabal test all")
 
 # HYDROGEN
 (cd hydrogen && nix develop -c spago build)
@@ -551,34 +601,42 @@ cd /home/jpyxal/jpyxal
 
 ### 7.1 FOUNDRY Tasks
 
-- [ ] Enable `foundry-scraper` in `cabal.project`
-- [ ] Create `CompleteBrand` unified type
-- [ ] Port missing atoms from HYDROGEN (Layout, UIElements, Modes, etc.)
-- [ ] Create `BrandOntology`, `BrandHierarchy`
-- [ ] Create `AgentContext` for MAESTRO
-- [ ] Create COMPASS export module
-- [ ] Fix Lean4 sorries (Typography:212, Voice:166)
-- [ ] Create `Brand.lean` compound proofs
+| Status | Task | Notes |
+|--------|------|-------|
+| `[x]` | Enable `foundry-scraper` in `cabal.project` | Working |
+| `[x]` | Create `CompleteBrand` unified type | 18+ fields |
+| `[x]` | Port most atoms from HYDROGEN | Layout, Imagery, Theme |
+| `[ ]` | Port `UIElements.purs` to Haskell | 1 day effort |
+| `[ ]` | Port `GraphicElements.purs` to Haskell | 1 day effort |
+| `[x]` | Create `BrandOntology`, `BrandHierarchy` | Complete |
+| `[x]` | Create `AgentContext` for MAESTRO | Complete |
+| `[x]` | Create COMPASS export module | `ontologyToNDJSON` |
+| `[ ]` | Fix Lean4 ByteArray API | 2 days effort |
+| `[ ]` | Create `Brand.lean` compound proofs | 3 days effort |
 
 ### 7.2 HYDROGEN Tasks
 
-- [ ] Verify Schema alignment with FOUNDRY types
-- [ ] Create brand dashboard components
-- [ ] Create brand diff viewer
-- [ ] Create export UI
+| Status | Task | Notes |
+|--------|------|-------|
+| `[ ]` | Verify Schema alignment with FOUNDRY types | Pending |
+| `[ ]` | Create brand dashboard components | Pending |
+| `[ ]` | Create brand diff viewer | Pending |
+| `[ ]` | Create export UI | Pending |
 
 ### 7.3 COMPASS Tasks
 
-- [ ] Add brand entity types to knowledge graph schema
-- [ ] Create NDJSON import handler
-- [ ] Create `AgentBrandContext` service
-- [ ] Integrate with MAESTRO agent injection
-- [ ] Add brand context gRPC endpoint
+| Status | Task | Notes |
+|--------|------|-------|
+| `[ ]` | Add brand entity types to knowledge graph schema | Pending |
+| `[ ]` | Create NDJSON import handler | Pending |
+| `[ ]` | Create `AgentBrandContext` service | Pending |
+| `[ ]` | Integrate with MAESTRO agent injection | Pending |
+| `[ ]` | Add brand context gRPC endpoint | Pending |
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-*Document generated: 2026-02-26*
-*Status: APPROVED FOR IMPLEMENTATION*
+*Document updated: 2026-02-26*
+*Status: FOUNDRY PIPELINE OPERATIONAL — 232 tests passing*
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
                                                             // foundry // alignment

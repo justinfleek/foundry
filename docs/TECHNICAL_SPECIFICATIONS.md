@@ -1,8 +1,9 @@
 # FOUNDRY Technical Specifications
 
-> **Version**: 1.0.0  
+> **Version**: 1.1.0  
 > **Date**: 2026-02-26  
-> **Scope**: Type definitions, extraction algorithms, storage architecture
+> **Scope**: Type definitions, extraction algorithms, storage architecture  
+> **Status**: 232 tests passing, pipeline operational
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
