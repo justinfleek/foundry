@@ -59,7 +59,10 @@ library
     Foundry.Core
     Foundry.Core.Text
     Foundry.Core.Brand
+    Foundry.Core.Brand.Color
+    Foundry.Core.Brand.Customer
     Foundry.Core.Brand.Identity
+    Foundry.Core.Brand.Overview
     Foundry.Core.Brand.Palette
     Foundry.Core.Brand.Typography
     Foundry.Core.Brand.Spacing

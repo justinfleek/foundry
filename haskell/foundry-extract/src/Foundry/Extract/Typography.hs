@@ -45,7 +45,13 @@ import Data.Text qualified as T
 import Data.Vector (Vector)
 import Data.Vector qualified as V
 
-import Foundry.Core.Brand.Typography (FontFamily (..), FontWeight (..), TypeScale (..), Typography (..))
+import Foundry.Core.Brand.Typography 
+  ( FontFamily (..)
+  , FontWeight (..)
+  , LineHeight (..)
+  , TypeScale (..)
+  , Typography (..)
+  )
 import Foundry.Extract.Typography.FontFamily
 import Foundry.Extract.Typography.Scale
 import Foundry.Extract.Types
@@ -114,8 +120,19 @@ extractTypography sr = do
             Nothing -> [WarnNoTypeScale]
             Just _  -> []
       
+      -- Default line heights per SMART Framework
+      let defaultHeadingLH = LineHeight 1.3
+          defaultBodyLH = LineHeight 1.6
+      
       Right $ TypographyExtractionResult
-        { terTypography = Typography finalHeading finalBody typeScale
+        { terTypography = Typography
+            { typographyHeadingFamily = finalHeading
+            , typographyBodyFamily = finalBody
+            , typographyScale = typeScale
+            , typographyHeadingLH = defaultHeadingLH
+            , typographyBodyLH = defaultBodyLH
+            , typographyScaleTable = V.empty  -- TODO: build scale table from detected sizes
+            }
         , terScale = mScale
         , terWarnings = warnings
         }
@@ -127,7 +144,11 @@ x       <|> _ = x
 
 -- | Default font if none detected
 defaultFont :: FontFamily
-defaultFont = FontFamily "system-ui" ["sans-serif"]
+defaultFont = FontFamily 
+  { fontFamilyName = "system-ui"
+  , fontFamilyFallbacks = ["sans-serif"]
+  , fontFamilyRationale = "System default fallback"
+  }
 
 -- | Default type scale
 defaultScale :: TypeScale
@@ -271,7 +292,11 @@ isBodyElement es =
 
 -- | Convert font name to FontFamily
 toFontFamily :: Text -> Map Text Int -> FontFamily
-toFontFamily name _ = FontFamily name []  -- Simplified; could look up fallbacks
+toFontFamily name _ = FontFamily 
+  { fontFamilyName = name
+  , fontFamilyFallbacks = []
+  , fontFamilyRationale = "Extracted from website CSS"
+  }
 
 -- | Get maximum entry from a map (returns Maybe to avoid partiality)
 maximumEntry :: Ord v => Map k v -> Maybe (k, v)
