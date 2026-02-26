@@ -245,12 +245,20 @@ namedColorParser = do
 --------------------------------------------------------------------------------
 
 -- | Convert RGB to OKLCH
+--
+-- SECURITY: This function must handle ANY Double input safely.
+-- Wild inputs (NaN, Infinity, huge values, negative) must produce
+-- valid OKLCH values in the proper ranges, never NaN or Infinity.
 rgbToOKLCH :: RGB -> OKLCH'
 rgbToOKLCH (RGB r g b a) = 
-  let -- Normalize to [0, 1]
-      r' = r / 255
-      g' = g / 255
-      b' = b / 255
+  let -- Sanitize and clamp inputs to [0, 255] (handles NaN, Inf, negatives)
+      clamp255 x = max 0 (min 255 (sanitize x))
+      sanitize x = if isNaN x || isInfinite x then 0 else x
+      
+      -- Normalize to [0, 1]
+      r' = clamp255 r / 255
+      g' = clamp255 g / 255
+      b' = clamp255 b / 255
       
       -- Linear RGB (sRGB gamma correction)
       linearize x = if x <= 0.04045
@@ -273,14 +281,23 @@ rgbToOKLCH (RGB r g b a) =
       labA = 1.9779984951 * l_' - 2.4285922050 * m_' + 0.4505937099 * s_'
       labB = 0.0259040371 * l_' + 0.7827717662 * m_' - 0.8086757660 * s_'
       
-      -- OKLab to OKLCH
+      -- OKLab to OKLCH with clamping
       c = sqrt (labA * labA + labB * labB)
       h = if c < 0.00001 then 0 else atan2 labB labA * 180 / pi
       h' = if h < 0 then h + 360 else h
-  in OKLCH' labL (min 0.4 c) h' a
+      
+      -- Final sanitization: ensure all outputs are valid
+      finalL = max 0 (min 1 (sanitize labL))
+      finalC = max 0 (min 0.4 (sanitize c))
+      finalH = max 0 (min 360 (sanitize h'))
+      finalA = max 0 (min 1 (sanitize a))
+  in OKLCH' finalL finalC finalH finalA
 
 cbrt :: Double -> Double
-cbrt x = if x < 0 then -((-x) ** (1/3)) else x ** (1/3)
+cbrt x 
+  | isNaN x || isInfinite x = 0
+  | x < 0 = -((-x) ** (1/3)) 
+  | otherwise = x ** (1/3)
 
 -- | Convert HSL to OKLCH (via RGB)
 hslToOKLCH :: HSL -> OKLCH'

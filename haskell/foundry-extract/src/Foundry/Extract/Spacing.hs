@@ -196,29 +196,65 @@ calculateConfidence base values =
       in abs (ratio - rounded) < 0.1
 
 -- | Detect the scale ratio between common spacing values
+--
+-- SECURITY: Must handle any input safely. Returns valid ratio in [1, 10].
 detectRatio :: [Int] -> Double
 detectRatio [] = 2.0
 detectRatio [_] = 2.0
 detectRatio mults =
-  let sorted = sort mults
+  let sorted = sort $ filter (> 0) mults  -- Filter out zero/negative
       -- Calculate ratios between consecutive multipliers (using drop 1 for totality)
-      ratios = zipWith (\a b -> fromIntegral b / fromIntegral a) 
-                 sorted 
-                 (drop 1 sorted)
+      -- Only use ratios where denominator > 0
+      ratios = [ fromIntegral b / fromIntegral a 
+               | (a, b) <- zip sorted (drop 1 sorted)
+               , a > 0  -- Prevent division by zero
+               ]
+      -- Filter out NaN/Infinite ratios and clamp to reasonable range
+      validRatios = [ r | r <- ratios
+                    , not (isNaN r)
+                    , not (isInfinite r)
+                    , r > 0
+                    , r <= 10  -- Reasonable upper bound
+                    ]
       -- Average ratio (geometric mean would be better)
-      avgRatio = if null ratios then 2.0 else sum ratios / fromIntegral (length ratios)
-  in avgRatio
+      avgRatio = if null validRatios 
+                 then 2.0 
+                 else sum validRatios / fromIntegral (length validRatios)
+      -- Final clamp to ensure valid output
+      finalRatio = if isNaN avgRatio || isInfinite avgRatio || avgRatio <= 0
+                   then 2.0
+                   else max 1.0 (min 10.0 avgRatio)
+  in finalRatio
 
 -- | Detect spacing scale (simplified version for external use)
+--
+-- SECURITY: Must handle wild inputs (NaN, Infinity, huge/tiny values).
+-- Returns Nothing or valid SpacingScale, never NaN/Infinity in fields.
 detectSpacingScale :: [Double] -> Maybe SpacingScale
 detectSpacingScale values
-  | length values < 2 = Nothing
+  | length validValues < 2 = Nothing
   | otherwise =
-      let analysis = analyzeSpacing values
+      let analysis = analyzeSpacing validValues
+          base = saBaseUnit analysis / 16
+          ratio = detectRatio (saMultipliers analysis)
+          -- Ensure outputs are valid
+          safeBase = if isNaN base || isInfinite base || base <= 0 
+                     then 0.5  -- Default: 8px / 16 = 0.5rem
+                     else base
+          safeRatio = if isNaN ratio || isInfinite ratio || ratio <= 0
+                      then 2.0
+                      else ratio
       in Just $ SpacingScale
-           { spacingScaleBase = saBaseUnit analysis / 16
-           , spacingScaleRatio = detectRatio (saMultipliers analysis)
+           { spacingScaleBase = safeBase
+           , spacingScaleRatio = safeRatio
            }
+  where
+    -- Filter out NaN, Infinity, and non-positive values
+    validValues = [ v | v <- values
+                  , not (isNaN v)
+                  , not (isInfinite v)
+                  , v > 0
+                  ]
 
 -- | Helper to find minimum by comparison (total, returns Maybe)
 minimumByMay :: (a -> a -> Ordering) -> [a] -> Maybe a

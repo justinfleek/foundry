@@ -93,6 +93,9 @@ detectScale sizes
   | otherwise = detectScaleFromSizes (V.toList sizes)
 
 -- | Detect scale from a list of font sizes
+--
+-- SECURITY: Must handle wild inputs (NaN, Infinity, huge/tiny values).
+-- Returns Nothing or valid DetectedScale, never NaN/Infinity in fields.
 detectScaleFromSizes :: [Double] -> Maybe DetectedScale
 detectScaleFromSizes sizes
   | length uniqueSizes < 2 = Nothing
@@ -100,15 +103,26 @@ detectScaleFromSizes sizes
       let sorted = sort uniqueSizes
           (base, ratio, confidence) = fitScaleRatio sorted
           mKnown = closestKnownRatio ratio
+          -- Sanitize outputs
+          safeBase = sanitizePositive base 16.0
+          safeRatio = sanitizePositive ratio 1.25
+          safeConf = max 0 (min 1 (sanitize confidence))
       in Just $ DetectedScale
-           { dsBaseSize = base
-           , dsRatio = ratio
+           { dsBaseSize = safeBase
+           , dsRatio = safeRatio
            , dsKnownRatio = mKnown
-           , dsConfidence = confidence
+           , dsConfidence = safeConf
            , dsSamples = length uniqueSizes
            }
   where
-    uniqueSizes = nub $ filter (> 0) sizes
+    -- Filter out NaN, Infinity, non-positive, and extreme values
+    uniqueSizes = nub $ filter isValidSize sizes
+    isValidSize x = not (isNaN x) 
+                 && not (isInfinite x) 
+                 && x > 0 
+                 && x < 1e6  -- Reasonable upper bound for font size
+    sanitize x = if isNaN x || isInfinite x then 0 else x
+    sanitizePositive x def = if isNaN x || isInfinite x || x <= 0 then def else x
 
 -- | Fit a scale ratio to a list of sorted font sizes
 --
@@ -139,29 +153,60 @@ fitWithRatio sizes ratio =
   in minimumBy (comparing (\(_, _, e) -> e)) errors
 
 -- | Calculate total error for a base/ratio pair
+--
+-- SECURITY: Returns finite error value, never NaN/Infinity
 totalError :: Double -> Double -> [Double] -> Double
 totalError base ratio sizes =
-  sum $ map (sizeError base ratio) sizes
+  let errs = map (sizeError base ratio) sizes
+      total = sum errs
+  in if isNaN total || isInfinite total then 1e10 else total
 
 -- | Error for a single size given base and ratio
+--
+-- SECURITY: Handles edge cases (log of <=0, division by zero, negative exponents)
 sizeError :: Double -> Double -> Double -> Double
-sizeError base ratio size =
-  let -- Find the closest scale step
-      logRatio = log ratio
-      step = round (log (size / base) / logRatio) :: Int
-      expected = base * (ratio ^^ step)
-  in abs (size - expected)
+sizeError base ratio size
+  | base <= 0 || ratio <= 1 || size <= 0 = 1e10  -- Invalid inputs
+  | otherwise =
+      let logRatio = log ratio
+          logSizeBase = log (size / base)
+          -- Guard against division by very small logRatio
+          step = if abs logRatio < 1e-10 
+                 then 0 
+                 else round (logSizeBase / logRatio) :: Int
+          -- Use ** instead of ^^ to handle negative exponents safely
+          expected = base * (ratio ** fromIntegral step)
+          err = abs (size - expected)
+      in if isNaN err || isInfinite err then 1e10 else err
 
 -- | Geometric regression to find optimal ratio
+--
+-- SECURITY: Handles edge cases that could produce NaN/Infinity
 geometricRegression :: [Double] -> (Double, Double, Double)
 geometricRegression sizes =
-  let sorted = sort sizes
-      base = Prelude.head sorted
-      -- Calculate ratios between consecutive sizes
-      ratios = zipWith (/) (Prelude.tail sorted) (Prelude.init sorted)
-      avgRatio = if null ratios then 1.25 else exp (sum (map log ratios) / fromIntegral (length ratios))
+  let sorted = sort $ filter (> 0) sizes  -- Ensure positive
+      base = case sorted of
+               []    -> 16.0
+               (x:_) -> x
+      -- Calculate ratios between consecutive sizes, filtering invalid
+      ratios = [ b / a 
+               | (a, b) <- zip sorted (drop 1 sorted)
+               , a > 0
+               , b > 0
+               , let r = b / a
+               , not (isNaN r)
+               , not (isInfinite r)
+               , r > 0
+               ]
+      -- Safe log with fallback
+      safeLogRatios = [ log r | r <- ratios, r > 0 ]
+      avgRatio = if null safeLogRatios 
+                 then 1.25 
+                 else let avg = exp (sum safeLogRatios / fromIntegral (length safeLogRatios))
+                      in if isNaN avg || isInfinite avg || avg <= 0 then 1.25 else avg
       err = totalError base avgRatio sorted
-  in (base, avgRatio, err)
+      safeErr = if isNaN err || isInfinite err then 1e10 else err
+  in (base, avgRatio, safeErr)
 
 --------------------------------------------------------------------------------
 -- Analysis

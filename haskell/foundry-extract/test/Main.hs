@@ -16,6 +16,7 @@ import Test.Tasty (TestTree, defaultMain, testGroup)
 
 import Test.Foundry.Extract.Color qualified as Color
 import Test.Foundry.Extract.Compose qualified as Compose
+import Test.Foundry.Extract.Security qualified as Security
 import Test.Foundry.Extract.Spacing qualified as Spacing
 import Test.Foundry.Extract.Typography qualified as Typography
 import Test.Foundry.Extract.Voice qualified as Voice
@@ -30,4 +31,5 @@ tests = testGroup "foundry-extract"
   , Spacing.tests
   , Voice.tests
   , Compose.tests
+  , Security.tests
   ]
