@@ -11,6 +11,8 @@ module Main (main) where
 import Test.Foundry.Core.Agent qualified as Agent
 import Test.Foundry.Core.Brand qualified as Brand
 import Test.Foundry.Core.Brand.Tagline qualified as Tagline
+import Test.Foundry.Core.Brand.Editorial qualified as Editorial
+import Test.Foundry.Core.Brand.Strategy qualified as Strategy
 import Test.Foundry.Core.Brand.Security qualified as Security
 import Test.Foundry.Core.Effect qualified as Effect
 import Test.Tasty (defaultMain, testGroup)
@@ -23,6 +25,8 @@ main =
       [ Agent.tests
       , Brand.tests
       , Tagline.tests
+      , Editorial.tests
+      , Strategy.tests
       , Security.tests
       , Effect.tests
       ]

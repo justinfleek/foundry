@@ -108,6 +108,8 @@ test-suite foundry-core-test
     Test.Foundry.Core.Brand
     Test.Foundry.Core.Brand.Generators
     Test.Foundry.Core.Brand.Tagline
+    Test.Foundry.Core.Brand.Editorial
+    Test.Foundry.Core.Brand.Strategy
     Test.Foundry.Core.Brand.Security
     Test.Foundry.Core.Effect
   build-depends:
