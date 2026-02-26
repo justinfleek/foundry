@@ -68,8 +68,13 @@ library
     Foundry.Core.Brand.Spacing
     Foundry.Core.Brand.Voice
     Foundry.Core.Brand.Strategy
+    Foundry.Core.Brand.Tagline
     Foundry.Core.Brand.Editorial
     Foundry.Core.Brand.Provenance
+    Foundry.Core.Brand.Logo
+    Foundry.Core.Brand.Logo.Sizing
+    Foundry.Core.Brand.Logo.Usage
+    Foundry.Core.Brand.Gradient
     Foundry.Core.Agent
     Foundry.Core.Agent.Permission
     Foundry.Core.Agent.Budget
@@ -101,6 +106,9 @@ test-suite foundry-core-test
   other-modules:
     Test.Foundry.Core.Agent
     Test.Foundry.Core.Brand
+    Test.Foundry.Core.Brand.Generators
+    Test.Foundry.Core.Brand.Tagline
+    Test.Foundry.Core.Brand.Security
     Test.Foundry.Core.Effect
   build-depends:
     , base            >= 4.18  && < 5
@@ -109,5 +117,7 @@ test-suite foundry-core-test
     , foundry-core
     , tasty           >= 1.5   && < 2
     , tasty-hedgehog  >= 1.4   && < 2
+    , text            >= 2.0   && < 3
+    , vector          >= 0.13  && < 1
   hs-source-dirs:   test
   default-language: GHC2024
