@@ -22,7 +22,9 @@ module Test.Foundry.Storage.HAMT
   ) where
 
 import Data.ByteString (ByteString)
-import Hedgehog (Gen, Property, forAll, property, (===), assert)
+import Data.ByteString qualified as BS
+import Data.ByteString.Char8 qualified as BS8
+import Hedgehog (Gen, Property, forAll, property, (===), assert, withTests)
 import Hedgehog.Gen qualified as Gen
 import Hedgehog.Range qualified as Range
 import Foundry.Storage.HAMT qualified as HAMT
@@ -42,6 +44,9 @@ tests =
     [ testGroup "Construction" constructionTests
     , testGroup "Operations" operationTests
     , testGroup "Properties" propertyTests
+    , testGroup "Memory" memoryTests
+    , testGroup "Security" securityTests
+    , testGroup "Invariants" invariantTests
     ]
 
 --------------------------------------------------------------------------------
@@ -187,3 +192,152 @@ prop_keyConsistency = property $ do
   let (hamtKey, _) = HAMT.insert content HAMT.empty
       standaloneKey = mkStorageKey content
   hamtKey === standaloneKey
+
+--------------------------------------------------------------------------------
+-- Memory Tests
+--------------------------------------------------------------------------------
+
+memoryTests :: [TestTree]
+memoryTests =
+  [ testProperty "large content handled" prop_largeContent
+  , testProperty "many entries handled" prop_manyEntries
+  , testProperty "structure sharing works" prop_structureSharing
+  ]
+
+-- | Large content should be handled without issues
+prop_largeContent :: Property
+prop_largeContent = withTests 10 $ property $ do
+  -- Generate 100KB content
+  content <- forAll $ Gen.bytes (Range.linear 50000 100000)
+  let (key, hamt) = HAMT.insert content HAMT.empty
+  HAMT.lookup key hamt === Just content
+
+-- | Many entries should be handled
+prop_manyEntries :: Property
+prop_manyEntries = withTests 10 $ property $ do
+  -- Generate 1000 unique entries
+  let contents = map (\i -> BS8.pack ("content" <> show i)) [1..1000 :: Int]
+  let (keys, hamt) = HAMT.fromList contents
+  -- All should be retrievable
+  length keys === 1000
+  HAMT.size hamt === 1000
+
+-- | Structure sharing should work (old versions remain valid)
+prop_structureSharing :: Property
+prop_structureSharing = property $ do
+  content1 <- forAll genContent
+  content2 <- forAll genContent
+  let (key1, hamt1) = HAMT.insert content1 HAMT.empty
+      (key2, hamt2) = HAMT.insert content2 hamt1
+  -- Old version should still work
+  HAMT.lookup key1 hamt1 === Just content1
+  -- New version should have both
+  HAMT.lookup key1 hamt2 === Just content1
+  HAMT.lookup key2 hamt2 === Just content2
+
+--------------------------------------------------------------------------------
+-- Security Tests  
+--------------------------------------------------------------------------------
+
+securityTests :: [TestTree]
+securityTests =
+  [ testProperty "poison content is stored safely" prop_poisonContentSafe
+  , testProperty "binary content preserved exactly" prop_binaryExact
+  , testProperty "null bytes handled" prop_nullBytes
+  ]
+
+-- | Poison pill content should be stored and retrieved safely
+prop_poisonContentSafe :: Property
+prop_poisonContentSafe = withTests 100 $ property $ do
+  -- Generate adversarial content
+  poison <- forAll $ Gen.element
+    [ "'; DROP TABLE--"
+    , "<script>alert(1)</script>"
+    , "null\x00byte"
+    , "\x1B[2J"  -- ANSI escape
+    ]
+  let content = BS8.pack poison
+  let (key, hamt) = HAMT.insert content HAMT.empty
+  -- Should be stored and retrieved exactly
+  HAMT.lookup key hamt === Just content
+
+-- | Binary content should be preserved exactly
+prop_binaryExact :: Property
+prop_binaryExact = withTests 200 $ property $ do
+  content <- forAll genContent
+  let (key, hamt) = HAMT.insert content HAMT.empty
+  case HAMT.lookup key hamt of
+    Nothing -> assert False
+    Just retrieved -> retrieved === content
+
+-- | Null bytes should be handled correctly
+prop_nullBytes :: Property
+prop_nullBytes = property $ do
+  let content = BS8.pack "before\x00after"
+  let (key, hamt) = HAMT.insert content HAMT.empty
+  case HAMT.lookup key hamt of
+    Nothing -> assert False
+    Just retrieved -> BS.length retrieved === BS.length content
+
+--------------------------------------------------------------------------------
+-- Invariant Tests
+--------------------------------------------------------------------------------
+
+invariantTests :: [TestTree]
+invariantTests =
+  [ testProperty "determinism: same input same key always" prop_deterministic
+  , testProperty "collision resistance: different input different key" prop_collisionResistant
+  , testProperty "delete is complete" prop_deleteComplete
+  , testProperty "insert-delete-insert idempotent" prop_insertDeleteInsert
+  ]
+
+-- | Same input always produces same key (deterministic)
+prop_deterministic :: Property
+prop_deterministic = withTests 200 $ property $ do
+  content <- forAll genContent
+  let (key1, _) = HAMT.singleton content
+      (key2, _) = HAMT.singleton content
+      (key3, _) = HAMT.insert content HAMT.empty
+  key1 === key2
+  key2 === key3
+
+-- | Different input produces different key (collision resistance)
+prop_collisionResistant :: Property
+prop_collisionResistant = withTests 500 $ property $ do
+  content1 <- forAll genContent
+  content2 <- forAll genContent
+  if content1 == content2
+    then do
+      let (k1, _) = HAMT.singleton content1
+          (k2, _) = HAMT.singleton content2
+      k1 === k2
+    else do
+      let (k1, _) = HAMT.singleton content1
+          (k2, _) = HAMT.singleton content2
+      assert (k1 /= k2)
+
+-- | Delete should completely remove entry
+prop_deleteComplete :: Property
+prop_deleteComplete = property $ do
+  content <- forAll genContent
+  let (key, hamt1) = HAMT.insert content HAMT.empty
+      hamt2 = HAMT.delete key hamt1
+  -- Should not be member
+  assert (not (HAMT.member key hamt2))
+  -- Lookup should return Nothing
+  HAMT.lookup key hamt2 === Nothing
+  -- Size should be 0
+  HAMT.size hamt2 === 0
+
+-- | Insert, delete, insert should work correctly
+prop_insertDeleteInsert :: Property
+prop_insertDeleteInsert = property $ do
+  content <- forAll genContent
+  let (key1, hamt1) = HAMT.insert content HAMT.empty
+      hamt2 = HAMT.delete key1 hamt1
+      (key2, hamt3) = HAMT.insert content hamt2
+  -- Keys should be the same (content-addressed)
+  key1 === key2
+  -- Final state should have the content
+  HAMT.lookup key2 hamt3 === Just content
+  HAMT.size hamt3 === 1
