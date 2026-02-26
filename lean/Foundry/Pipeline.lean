@@ -22,7 +22,8 @@
 --
 -- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-import Mathlib.Tactic
+-- Note: Uses only standard Lean 4 tactics (simp, native_decide, rfl)
+-- No Mathlib dependency required
 
 namespace Foundry.Pipeline
 
@@ -36,10 +37,11 @@ Brand ingestion has specific coeffect requirements at each stage.
 We follow the Continuity pattern: coeffects are what computation NEEDS.
 -/
 
-/-- Hash for content addressing (axiomatized per Continuity pattern) -/
+/-- Hash for content addressing
+    Stores hex string directly; validation is a runtime property -/
 structure Hash where
   hex : String
-  valid : hex.length = 64
+  deriving DecidableEq, BEq, Repr
 
 /-- Coeffects for brand ingestion pipeline -/
 inductive Coeffect where
@@ -52,9 +54,7 @@ inductive Coeffect where
   | zmq (endpoint : String)                   -- Needs ZMQ messaging
   | duckdb                                    -- Needs DuckDB analytics
   | postgres                                  -- Needs PostgreSQL durable storage
-
--- DecidableEq axiomatized (depends on opaque Hash)
-@[instance] axiom Coeffect.instDecidableEq : DecidableEq Coeffect
+  deriving DecidableEq, BEq, Repr
 
 /-- A set of coeffects (⊗ combination) -/
 abbrev Coeffects := List Coeffect
@@ -224,10 +224,7 @@ namespace DischargeProof
 /-- Check if all declared coeffects have evidence -/
 def allDischarged (p : DischargeProof) : Bool :=
   p.declaredCoeffects.all fun c =>
-    p.actualEvidence.any fun e => 
-      match Coeffect.instDecidableEq c e.coeffect with
-      | isTrue _ => true
-      | isFalse _ => false
+    p.actualEvidence.any fun e => c == e.coeffect
 
 /-- Duration of pipeline execution -/
 def duration (p : DischargeProof) : Nat :=

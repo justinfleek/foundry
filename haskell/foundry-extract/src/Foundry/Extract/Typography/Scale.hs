@@ -148,7 +148,8 @@ fitWithRatio sizes ratio =
       minSize = minimum sizes
       maxSize = maximum sizes
       -- Base size is likely the smallest or a common size
-      candidateBases = [minSize, minSize / ratio, minSize / (ratio * ratio)]
+      -- Also try deriving from maxSize for top-down scales
+      candidateBases = [minSize, minSize / ratio, minSize / (ratio * ratio), maxSize / (ratio ^ (4 :: Int))]
       errors = map (\b -> (b, ratio, totalError b ratio sizes)) candidateBases
   in minimumBy (comparing (\(_, _, e) -> e)) errors
 

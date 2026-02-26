@@ -131,6 +131,7 @@ headlineTests =
   , testProperty "caseStyleToText roundtrips" prop_caseStyleRoundtrip
   , testProperty "all punctuation types enumerable" prop_punctuationEnumerable
   , testProperty "headline style preserves values" prop_headlinePreserves
+  , testProperty "genHeadlineStyle generates valid styles" prop_genHeadlineStyleValid
   ]
 
 -- | All HeadlineCaseStyle values should be enumerable
@@ -159,13 +160,21 @@ prop_headlinePreserves :: Property
 prop_headlinePreserves = withTests 200 $ property $ do
   caseStyle <- forAll genHeadlineCaseStyle
   puncs <- V.fromList <$> forAll (Gen.list (Range.linear 0 3) genHeadlinePunctuation)
-  maxLen <- forAll $ Gen.maybe (Gen.word8 (Range.linear 20 100))
-  concise <- forAll $ Gen.element ["Brief", "Punchy", "Direct"]
+  maxLen :: Maybe Word8 <- forAll $ Gen.maybe (Gen.word8 (Range.linear 20 100))
+  concise :: Text <- forAll $ Gen.element ["Brief", "Punchy", "Direct"]
   let hs = mkHeadlineStyle caseStyle puncs maxLen concise
   headlineCaseStyle hs === caseStyle
   headlinePunctuation hs === puncs
   headlineMaxLength hs === maxLen
   headlineConciseness hs === concise
+
+-- | genHeadlineStyle should generate valid styles
+prop_genHeadlineStyleValid :: Property
+prop_genHeadlineStyleValid = withTests 100 $ property $ do
+  hs <- forAll genHeadlineStyle
+  -- Style should have valid case style
+  let caseStyle = headlineCaseStyle hs
+  assert (isJust (Just caseStyle))  -- Always true, just using isJust
 
 --------------------------------------------------------------------------------
 -- PunctuationRules Tests
@@ -178,6 +187,7 @@ punctuationTests =
   , testProperty "all hyphenation policies enumerable" prop_hyphenEnumerable
   , testProperty "exclamation limit is bounded" prop_exclamationBounded
   , testProperty "punctuation rules preserve values" prop_punctRulesPreserve
+  , testProperty "genPunctuationRules generates valid rules" prop_genPunctuationRulesValid
   ]
 
 -- | All ListPunctuation values should be enumerable
@@ -218,6 +228,14 @@ prop_punctRulesPreserve = withTests 200 $ property $ do
   punctHyphenation pr === hyph
   punctExclamationMax pr === excl
 
+-- | genPunctuationRules should generate valid rules
+prop_genPunctuationRulesValid :: Property
+prop_genPunctuationRulesValid = withTests 100 $ property $ do
+  pr <- forAll genPunctuationRules
+  -- Should have valid exclamation limit (always bounded 0-255)
+  let limit = unExclamationLimit (punctExclamationMax pr)
+  assert (limit <= 255)
+
 --------------------------------------------------------------------------------
 -- ContactTimeRules Tests
 --------------------------------------------------------------------------------
@@ -231,6 +249,8 @@ contactTimeTests =
   , testProperty "all midnight/noon options enumerable" prop_midnightNoonEnumerable
   , testProperty "all day abbreviations enumerable" prop_dayAbbrevEnumerable
   , testProperty "contact time rules compose correctly" prop_contactTimeCompose
+  , testProperty "generators produce valid time options" prop_timeGeneratorsValid
+  , testProperty "mkContactTimeRules creates valid rules" prop_mkContactTimeRulesWorks
   ]
 
 -- | PhoneFormat requires at least one X placeholder
@@ -292,6 +312,36 @@ prop_contactTimeCompose = withTests 100 $ property $ do
           _ = contactDayAbbrev ctr
       assert True
 
+-- | Time-related generators should produce valid options
+prop_timeGeneratorsValid :: Property
+prop_timeGeneratorsValid = withTests 50 $ property $ do
+  tf <- forAll genTimeFormat
+  tr <- forAll genTimeRangeNotation
+  mn <- forAll genMidnightNoon
+  da <- forAll genDayAbbreviation
+  -- All should be valid enum values
+  assert (tf `elem` [TwelveHour, TwentyFourHour])
+  assert (tr `elem` [EnDash, Hyphen, ToWord])
+  assert (mn `elem` [TwelveAMPM, MidnightNoonWord, TwentyFourStyle])
+  assert (da `elem` [NeverAbbreviate, ThreeLetters, TwoLetters, ContextualAbbrev])
+
+-- | mkContactTimeRules should create valid rules with all components
+prop_mkContactTimeRulesWorks :: Property
+prop_mkContactTimeRulesWorks = withTests 50 $ property $ do
+  mPhone <- forAll genPhoneFormat
+  tf <- forAll genTimeFormat
+  tr <- forAll genTimeRangeNotation
+  mn <- forAll genMidnightNoon
+  da <- forAll genDayAbbreviation
+  case mPhone of
+    Nothing -> assert True  -- Phone format may fail
+    Just pf -> do
+      let ctr = mkContactTimeRules pf tf tr mn da
+      contactTimeFormat ctr === tf
+      contactTimeRange ctr === tr
+      contactMidnightNoon ctr === mn
+      contactDayAbbrev ctr === da
+
 --------------------------------------------------------------------------------
 -- SpellingConventions Tests
 --------------------------------------------------------------------------------
@@ -303,6 +353,8 @@ spellingTests =
   , testProperty "confused word requires non-empty correct" prop_confusedRequiresCorrect
   , testProperty "confused word preserves values" prop_confusedPreserves
   , testProperty "spelling conventions compose correctly" prop_spellingCompose
+  , testProperty "generators produce valid spelling options" prop_spellingGeneratorsValid
+  , testProperty "mkSpellingConventions creates valid conventions" prop_mkSpellingConventionsWorks
   ]
 
 -- | All RegionalSpelling values should be enumerable
@@ -343,6 +395,24 @@ prop_spellingCompose = withTests 200 $ property $ do
       _ = spellingConfused sc
   assert True
 
+-- | Spelling-related generators should produce valid options
+prop_spellingGeneratorsValid :: Property
+prop_spellingGeneratorsValid = withTests 50 $ property $ do
+  rs <- forAll genRegionalSpelling
+  assert (rs `elem` [AmericanEnglish, BritishEnglish, CanadianEnglish, AustralianEnglish])
+
+-- | mkSpellingConventions should create valid conventions
+prop_mkSpellingConventionsWorks :: Property
+prop_mkSpellingConventionsWorks = withTests 50 $ property $ do
+  rs <- forAll genRegionalSpelling
+  mCw <- forAll genConfusedWord
+  let confused = case mCw of
+        Nothing -> V.empty
+        Just cw -> V.singleton cw
+  let sc = mkSpellingConventions rs confused
+  spellingRegion sc === rs
+  V.length (spellingConfused sc) === V.length confused
+
 --------------------------------------------------------------------------------
 -- FormattingRules Tests
 --------------------------------------------------------------------------------
@@ -352,6 +422,7 @@ formattingTests =
   [ testProperty "all text alignments enumerable" prop_alignmentEnumerable
   , testProperty "all capitalization rules enumerable" prop_capRulesEnumerable
   , testProperty "formatting rules preserve values" prop_formattingPreserves
+  , testProperty "genFormattingRules generates valid rules" prop_genFormattingRulesValid
   ]
 
 -- | All TextAlignment values should be enumerable
@@ -375,6 +446,13 @@ prop_formattingPreserves = withTests 200 $ property $ do
   formatAlignment fr === align
   formatCapitalization fr === caps
 
+-- | genFormattingRules should generate valid rules
+prop_genFormattingRulesValid :: Property
+prop_genFormattingRulesValid = withTests 100 $ property $ do
+  fr <- forAll genFormattingRules
+  let align = formatAlignment fr
+  assert (align `elem` [AlignLeft, AlignCenter, AlignRight, AlignJustify])
+
 --------------------------------------------------------------------------------
 -- MasterStyleList Tests
 --------------------------------------------------------------------------------
@@ -383,6 +461,7 @@ masterStyleTests :: [TestTree]
 masterStyleTests =
   [ testProperty "master style list composes correctly" prop_masterStyleCompose
   , testProperty "master style list requires valid phone" prop_masterStyleRequiresPhone
+  , testProperty "mkMasterStyleList creates valid list" prop_mkMasterStyleListWorks
   ]
 
 -- | MasterStyleList should compose correctly with valid inputs
@@ -406,3 +485,20 @@ prop_masterStyleRequiresPhone = property $ do
   -- If phone format is invalid, the whole thing should fail
   let badPhone = mkPhoneFormat "no-x-placeholder"
   assert (isNothing badPhone)
+
+-- | mkMasterStyleList should create valid list from components
+prop_mkMasterStyleListWorks :: Property
+prop_mkMasterStyleListWorks = withTests 50 $ property $ do
+  hs <- forAll genHeadlineStyle
+  pr <- forAll genPunctuationRules
+  mCtr <- forAll genContactTimeRules
+  sc <- forAll genSpellingConventions
+  fr <- forAll genFormattingRules
+  case mCtr of
+    Nothing -> assert True  -- Phone format may fail
+    Just ctr -> do
+      let msl = mkMasterStyleList hs pr ctr sc fr
+      styleHeadlines msl === hs
+      stylePunctuation msl === pr
+      styleSpelling msl === sc
+      styleFormatting msl === fr

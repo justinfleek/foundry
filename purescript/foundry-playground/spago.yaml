@@ -1,5 +1,5 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-#                                                      // metxt // playground
+#                                                    // foundry // playground
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
 # Brand Playground - Visual Atom/Molecule/Compound Builder
@@ -14,7 +14,7 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 package:
-  name: metxt-playground
+  name: foundry-playground
   dependencies:
     # Core
     - prelude
@@ -46,7 +46,7 @@ package:
     - st
     
     # Local dependency
-    # Note: metxt-brand is in ../../src
+    # Note: foundry-brand is in ../../src
   build:
     strict: true
 

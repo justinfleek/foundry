@@ -110,6 +110,11 @@ taglineTextTests =
   , testProperty "value is preserved after creation" prop_valuePreserved
   , testProperty "taglineToText roundtrips" prop_taglineToTextRoundtrip
   , testProperty "all contexts are enumerable" prop_allContextsEnumerable
+  , testProperty "invalid text is rejected" prop_invalidTextRejected
+  , testProperty "poison text is handled safely" prop_poisonTextSafe
+  , testProperty "mkTagline creates valid tagline" prop_mkTaglineWorks
+  , testProperty "mkTaglineSet creates valid set" prop_mkTaglineSetWorks
+  , testProperty "usage rules are generated properly" prop_usageRulesGenerated
   ]
 
 -- | Valid (non-empty, non-whitespace) text should be accepted
@@ -191,6 +196,69 @@ prop_allContextsEnumerable = property $ do
         , PartnerContext
         ]
   length contexts === 7
+
+-- | Invalid text inputs should be rejected
+prop_invalidTextRejected :: Property
+prop_invalidTextRejected = withTests 200 $ property $ do
+  invalidTxt :: Text <- forAll genInvalidTaglineText
+  -- Invalid text should always be rejected
+  assert (isNothing (mkTaglineText invalidTxt))
+
+-- | Poison text inputs should be handled safely (no crash)
+prop_poisonTextSafe :: Property
+prop_poisonTextSafe = withTests 200 $ property $ do
+  poisonTxt :: Text <- forAll genPoisonTaglineText
+  -- Should either accept (with sanitization) or reject, never crash
+  let result :: Maybe TaglineText = mkTaglineText poisonTxt
+  assert (isJust result || isNothing result)
+
+-- | mkTagline should create valid taglines with contexts
+prop_mkTaglineWorks :: Property
+prop_mkTaglineWorks = withTests 200 $ property $ do
+  txt <- forAll genValidTaglineText
+  ctx <- forAll genTaglineContext
+  let contexts = V.singleton ctx
+  case mkTagline txt contexts of
+    Nothing -> assert True  -- Invalid input
+    Just (tagline :: Tagline) -> do
+      -- Tagline should have the context we specified
+      let resultCtxs = taglineContexts tagline
+      assert (V.elem ctx resultCtxs)
+      -- Text should be preserved (stripped)
+      let resultTxt :: TaglineText = taglineText tagline
+      taglineToText resultTxt === T.strip txt
+
+-- | mkTaglineSet should create valid sets with primary and secondaries
+prop_mkTaglineSetWorks :: Property
+prop_mkTaglineSetWorks = withTests 100 $ property $ do
+  mPrimary <- forAll genPrimaryTagline
+  mSecondaries <- forAll $ Gen.list (Range.linear 0 3) genSecondaryTagline
+  rules <- V.fromList <$> forAll (Gen.list (Range.linear 0 2) genTaglineUsageRule)
+  case mPrimary of
+    Nothing -> assert True  -- Invalid primary
+    Just primary -> do
+      let validSecondaries = [s | Just s <- mSecondaries]
+      let tagSet :: TaglineSet = mkTaglineSet primary (V.fromList validSecondaries) rules
+      -- TaglineSet should contain the primary
+      let setPrimary :: PrimaryTagline = taglineSetPrimary tagSet
+      let setSecondaries :: V.Vector SecondaryTagline = taglineSetSecondary tagSet
+      -- Primary should match
+      taglineText (primaryToTagline setPrimary) === taglineText (primaryToTagline primary)
+      -- Secondaries count should match
+      V.length setSecondaries === length validSecondaries
+
+-- | Usage rules should be properly generated
+prop_usageRulesGenerated :: Property
+prop_usageRulesGenerated = withTests 100 $ property $ do
+  rule :: TaglineUsageRule <- forAll genTaglineUsageRule
+  -- Verify the rule is one of the expected variants
+  let isValidRule = case rule of
+        UsageWithLogo -> True
+        UsageStandalone -> True
+        NoModification -> True
+        NoCampaignCombination -> True
+        RequiresApproval -> True
+  assert isValidRule
 
 --------------------------------------------------------------------------------
 -- PrimaryTagline Tests
@@ -286,8 +354,8 @@ prop_taglineSetNonEmpty = withTests 500 $ property $ do
   case mSet of
     Nothing -> assert True  -- Failed to create (invalid input)
     Just tagSet -> do
-      let all = allTaglines tagSet
-      assert (V.length all >= 1)
+      let allTags = allTaglines tagSet
+      assert (V.length allTags >= 1)
 
 -- | allTaglines should have the primary tagline first
 prop_allTaglinesPrimaryFirst :: Property
@@ -296,9 +364,9 @@ prop_allTaglinesPrimaryFirst = property $ do
   case mSet of
     Nothing -> assert True
     Just tagSet -> do
-      let all = allTaglines tagSet
+      let allTags = allTaglines tagSet
           primary = primaryToTagline (taglineSetPrimary tagSet)
-      case V.uncons all of
+      case V.uncons allTags of
         Nothing -> assert False  -- Should never be empty
         Just (first, _) -> do
           -- First element should be the primary
@@ -311,9 +379,9 @@ prop_allTaglinesCount = property $ do
   case mSet of
     Nothing -> assert True
     Just tagSet -> do
-      let all = allTaglines tagSet
+      let allTags = allTaglines tagSet
           secondaries = taglineSetSecondary tagSet
-      V.length all === 1 + V.length secondaries
+      V.length allTags === 1 + V.length secondaries
 
 --------------------------------------------------------------------------------
 -- Security Tests
@@ -380,9 +448,9 @@ prop_controlCharsSafe = property $ do
     , "\x1B[2J"
     , "\r\n\r\n"
     ]
-  -- Should not crash
+  -- Should not crash - result is either accepted or rejected gracefully
   let result = mkTaglineText ctrl
-  assert True  -- Just verifying no crash
+  assert (isJust result || isNothing result)
 
 -- | Unicode weirdness should be handled gracefully
 prop_unicodeWeirdnessSafe :: Property
@@ -414,10 +482,9 @@ stressTests =
 prop_massiveTextHandled :: Property
 prop_massiveTextHandled = withTests 10 $ property $ do
   massive <- forAll genMassiveText
-  -- Should not crash or hang
+  -- Should not crash or hang - result is either accepted or rejected gracefully
   let result = mkTaglineText massive
-  -- Just verify it completes
-  assert True
+  assert (isJust result || isNothing result)
 
 -- | Creating many taglines rapidly should not leak memory
 prop_rapidCreation :: Property

@@ -131,8 +131,10 @@ buildHAMTWithKey :: Int -> IO (HAMT ByteString, StorageKey)
 buildHAMTWithKey n = do
   let contents = generateContents n
       h = foldr insert empty contents
-      -- Get the key for the first content
-      k = mkStorageKey (Prelude.head contents)
+      -- Get the key for the first content (safe: pattern match on list)
+      k = case contents of
+            (c : _) -> mkStorageKey c
+            []      -> mkStorageKey "fallback-empty-benchmark"
   pure (h, k)
 
 -- | Check structure sharing: inserting new content shouldn't duplicate old

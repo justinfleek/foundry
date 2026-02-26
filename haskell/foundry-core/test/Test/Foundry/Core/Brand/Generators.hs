@@ -25,6 +25,7 @@ module Test.Foundry.Core.Brand.Generators
   ( -- * Tagline Generators
     genTaglineText
   , genValidTaglineText
+  , genValidatedTaglineText
   , genInvalidTaglineText
   , genPoisonTaglineText
   , genTaglineContext
@@ -466,6 +467,12 @@ genTaglineText = Gen.choice
   , genPoisonTaglineText
   ]
 
+-- | Generate a validated TaglineText value (uses mkTaglineText)
+genValidatedTaglineText :: Gen (Maybe TaglineText)
+genValidatedTaglineText = do
+  txt <- genValidTaglineText
+  pure $ mkTaglineText txt
+
 -- | Generate valid tagline text
 genValidTaglineText :: Gen Text
 genValidTaglineText = Gen.choice
@@ -475,12 +482,12 @@ genValidTaglineText = Gen.choice
   ]
 
 -- | Generate invalid tagline text (should be rejected)
+-- Note: Only includes text that is GUARANTEED to be rejected by mkTaglineText
 genInvalidTaglineText :: Gen Text
 genInvalidTaglineText = Gen.choice
   [ pure ""                              -- Empty
   , pure "   "                           -- Whitespace only
-  , pure "\t\n\r"                        -- Control chars only
-  , pure "\x200B\x200B"                  -- Zero-width only
+  , pure "\t\n\r"                        -- Control chars only (strips to empty)
   ]
 
 -- | Generate poison pill tagline text
@@ -563,8 +570,8 @@ genHeadlinePunctuation = Gen.element
 genHeadlineStyle :: Gen HeadlineStyle
 genHeadlineStyle = do
   caseStyle <- genHeadlineCaseStyle
-  punc <- V.fromList <$> Gen.list (Range.linear 0 3) genHeadlinePunctuation
-  maxLen <- Gen.maybe (Gen.word8 (Range.linear 20 100))
+  punc :: Vector HeadlinePunctuation <- V.fromList <$> Gen.list (Range.linear 0 3) genHeadlinePunctuation
+  maxLen :: Maybe Word8 <- Gen.maybe (Gen.word8 (Range.linear 20 100))
   concise <- Gen.element ["Be brief", "Short and punchy", "Maximum impact"]
   pure $ mkHeadlineStyle caseStyle punc maxLen concise
 

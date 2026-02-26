@@ -59,6 +59,7 @@ library
     , aeson           >= 2.0   && < 3
     , base            >= 4.18  && < 5
     , bytestring      >= 0.11  && < 1
+    , containers      >= 0.6   && < 1
     , foundry-extract
     , stm             >= 2.5   && < 3
     , text            >= 2.0   && < 3
@@ -84,10 +85,13 @@ test-suite foundry-scraper-test
   type:             exitcode-stdio-1.0
   main-is:          Main.hs
   build-depends:
+    , aeson           >= 2.0   && < 3
     , base            >= 4.18  && < 5
+    , bytestring      >= 0.11  && < 1
     , hedgehog        >= 1.4   && < 2
     , foundry-scraper
     , tasty           >= 1.5   && < 2
     , tasty-hedgehog  >= 1.4   && < 2
+    , text            >= 2.0   && < 3
   hs-source-dirs:   test
   default-language: GHC2024

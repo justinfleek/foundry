@@ -43,7 +43,7 @@ module Foundry.Scraper.Client
   , ScraperClientError (..)
   ) where
 
-import Control.Concurrent (forkIO, killThread, threadDelay)
+import Control.Concurrent (ThreadId, forkIO, threadDelay)
 import Control.Concurrent.STM
   ( TVar
   , atomically
@@ -52,18 +52,16 @@ import Control.Concurrent.STM
   , readTVar
   , readTVarIO
   , writeTVar
-  , retry
   )
-import Control.Exception (Exception, bracket, throwIO, try)
-import Control.Monad (forever, void, when)
+import Control.Exception (Exception, bracket, try)
+import Control.Monad (forever)
 import Data.ByteString (ByteString)
-import Data.ByteString qualified as BS
 import Data.ByteString.Char8 qualified as BC
+import Data.List.NonEmpty (NonEmpty (..))
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 import Data.Text (Text)
 import Data.Text qualified as T
-import Data.Text.Encoding qualified as TE
 import System.ZMQ4 qualified as ZMQ
 
 import Foundry.Extract.Types (ScrapeResult)
@@ -89,7 +87,7 @@ data ScraperClient = ScraperClient
   , scSocket     :: !(ZMQ.Socket ZMQ.Dealer)
   , scPending    :: !(TVar (Map ByteString (TVar (Maybe ScrapeResponse))))
   , scNextId     :: !(TVar Int)
-  , scRecvThread :: !(TVar (Maybe ZMQ.ThreadId))
+  , scRecvThread :: !(TVar (Maybe ThreadId))
   }
 
 -- | Errors from scraper client
@@ -151,9 +149,9 @@ newScraperClient config = do
 -- | Configure CURVE encryption on socket
 configureCurve :: ZMQ.Socket ZMQ.Dealer -> CurveKeys -> IO ()
 configureCurve sock CurveKeys{..} = do
-  ZMQ.setCurvePublicKey ZMQ.TextFormat ckPublicKey sock
-  ZMQ.setCurveSecretKey ZMQ.TextFormat ckSecretKey sock
-  ZMQ.setCurveServerKey ZMQ.TextFormat ckServerKey sock
+  ZMQ.setCurvePublicKey ZMQ.TextFormat (ZMQ.restrict ckPublicKey) sock
+  ZMQ.setCurveSecretKey ZMQ.TextFormat (ZMQ.restrict ckSecretKey) sock
+  ZMQ.setCurveServerKey ZMQ.TextFormat (ZMQ.restrict ckServerKey) sock
 
 -- | Close the scraper client
 closeScraperClient :: ScraperClient -> IO ()
@@ -236,7 +234,7 @@ scrapeWithOptions ScraperClient{..} url options = do
       encoded = encodeRequest request
   
   -- Send as multipart: [requestId, request]
-  sendResult <- try @ZMQ.ZMQError $ ZMQ.sendMulti scSocket [requestId, encoded]
+  sendResult <- try @ZMQ.ZMQError $ ZMQ.sendMulti scSocket (requestId :| [encoded])
   case sendResult of
     Left err -> do
       -- Clean up pending request
@@ -258,13 +256,17 @@ scrapeWithOptions ScraperClient{..} url options = do
 
 -- | Wait for response with timeout
 waitForResponse :: TVar (Maybe ScrapeResponse) -> Int -> IO (Maybe ScrapeResponse)
-waitForResponse var timeoutMicros = do
-  -- Simple polling implementation
-  -- A production version would use async/timeout
-  let pollInterval = 10000  -- 10ms
-      maxPolls = timeoutMicros `div` pollInterval
-  go maxPolls
+waitForResponse var timeoutMicros = go maxPolls
   where
+    -- Simple polling implementation
+    -- A production version would use async/timeout
+    pollInterval :: Int
+    pollInterval = 10000  -- 10ms
+    
+    maxPolls :: Int
+    maxPolls = timeoutMicros `div` pollInterval
+    
+    go :: Int -> IO (Maybe ScrapeResponse)
     go 0 = pure Nothing
     go n = do
       mResp <- readTVarIO var

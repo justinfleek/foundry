@@ -1,8 +1,8 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-#                                                            // metxt // modules
+#                                                          // foundry // modules
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
-# Flake modules for metxt
+# Flake modules for foundry
 #
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -11,8 +11,8 @@
 {
   # Export modules for use by downstream flakes
   flake.modules = {
-    # NixOS module for running metxt services
-    nixos.metxt =
+    # NixOS module for running foundry services
+    nixos.foundry =
       { config, pkgs, ... }:
       {
         # SearXNG service configuration
@@ -23,10 +23,10 @@
       };
 
     # Home-manager module
-    home.metxt =
+    home.foundry =
       { config, pkgs, ... }:
       {
-        # User-level metxt configuration
+        # User-level foundry configuration
       };
   };
 }

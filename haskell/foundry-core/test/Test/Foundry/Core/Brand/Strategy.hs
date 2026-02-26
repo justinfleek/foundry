@@ -176,6 +176,8 @@ valuesTests =
   , testProperty "values ordering is preserved" prop_valuesOrderPreserved
   , testProperty "value name is required" prop_valueNameRequired
   , testProperty "value description can be empty" prop_valueDescCanBeEmpty
+  , testProperty "genBrandValue generates valid values" prop_genValueValid
+  , testProperty "realistic values work correctly" prop_realisticValueWorks
   ]
 
 -- | BrandValues requires at least one value
@@ -219,6 +221,26 @@ prop_valueDescCanBeEmpty :: Property
 prop_valueDescCanBeEmpty = property $ do
   assert (isJust (mkBrandValue "Innovation" ""))
 
+-- | genBrandValue should generate valid values
+prop_genValueValid :: Property
+prop_genValueValid = withTests 100 $ property $ do
+  mValue <- forAll genBrandValue
+  case mValue of
+    Nothing -> assert True  -- May fail generation
+    Just (value :: BrandValue) -> do
+      let name = brandValueName value
+      assert (not (T.null name))
+
+-- | Realistic values should work correctly
+prop_realisticValueWorks :: Property
+prop_realisticValueWorks = withTests 100 $ property $ do
+  name :: Text <- forAll genRealisticValue
+  let desc = "A core company value"  -- Description is optional
+  case mkBrandValue name desc of
+    Nothing -> assert True  -- May be rejected
+    Just value -> do
+      brandValueName value === T.strip name
+
 --------------------------------------------------------------------------------
 -- PersonalityTraits Tests
 --------------------------------------------------------------------------------
@@ -228,6 +250,8 @@ traitTests =
   [ testProperty "trait requires non-empty text" prop_traitRequiresText
   , testProperty "trait is stripped" prop_traitStripped
   , testProperty "traitToText preserves value" prop_traitToTextPreserves
+  , testProperty "genPersonalityTrait generates valid traits" prop_genTraitValid
+  , testProperty "mkPersonalityDescription creates valid descriptions" prop_mkDescriptionWorks
   ]
 
 -- | Personality trait requires non-empty text
@@ -251,6 +275,27 @@ prop_traitToTextPreserves = withTests 200 $ property $ do
   case mkPersonalityTrait txt of
     Nothing -> assert False
     Just t -> traitToText t === T.strip txt
+
+-- | genPersonalityTrait should generate valid traits
+prop_genTraitValid :: Property
+prop_genTraitValid = withTests 100 $ property $ do
+  mTrait <- forAll genPersonalityTrait
+  case mTrait of
+    Nothing -> assert True  -- May fail generation
+    Just (trait :: PersonalityTrait) -> do
+      let txt :: Text = traitToText trait
+      assert (not (T.null txt))
+
+-- | mkPersonalityDescription should create valid descriptions
+prop_mkDescriptionWorks :: Property
+prop_mkDescriptionWorks = withTests 100 $ property $ do
+  descText <- forAll $ Gen.text (Range.linear 10 100) Gen.alphaNum
+  case mkPersonalityDescription descText of
+    Nothing -> assert True  -- May reject
+    Just (desc :: PersonalityDescription) -> do
+      -- Description should be accessible and non-empty
+      let descVal = unPersonalityDescription desc
+      assert (not (T.null descVal))
 
 --------------------------------------------------------------------------------
 -- PositioningStatement Tests
@@ -332,6 +377,7 @@ strategicLayerTests :: [TestTree]
 strategicLayerTests =
   [ testProperty "strategic layer composes all components" prop_strategicCompose
   , testProperty "strategic layer preserves mission" prop_strategicPreservesMission
+  , testProperty "mkStrategicLayer creates valid layers" prop_mkStrategicLayerWorks
   ]
 
 -- | StrategicLayer should compose all components correctly
@@ -354,9 +400,22 @@ prop_strategicPreservesMission = withTests 50 $ property $ do
   case mSl of
     Nothing -> assert True
     Just sl -> do
-      let mission = strategicMission sl
+      let mission :: MissionStatement = strategicMission sl
           txt = missionToText mission
       assert (not (T.null txt))
+
+-- | mkStrategicLayer should create valid layers from components
+prop_mkStrategicLayerWorks :: Property
+prop_mkStrategicLayerWorks = withTests 50 $ property $ do
+  mMs <- forAll genMissionStatement
+  mBv <- forAll genBrandValues
+  mBp <- forAll genBrandPersonality
+  case (mMs, mBv, mBp) of
+    (Just ms, Just bv, Just bp) -> do
+      let layer = mkStrategicLayer ms bv bp
+      -- Verify components are preserved
+      missionToText (strategicMission layer) === missionToText ms
+    _ -> assert True  -- Invalid components
 
 --------------------------------------------------------------------------------
 -- Security Tests

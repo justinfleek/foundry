@@ -35,6 +35,7 @@ module Foundry.Extract.Color.Role
   ( -- * Role Assignment
     assignRoles
   , RoleAssignment (..)
+  , filterAssignableRoles
 
     -- * WCAG Contrast
   , contrastRatio
@@ -185,3 +186,15 @@ isLight (OKLCH' l _ _ _) = l > 0.85
 -- | Check if color is dark (low lightness)
 isDark :: OKLCH' -> Bool
 isDark (OKLCH' l _ _ _) = l < 0.2
+
+-- | Filter clusters to only those that can be assigned roles
+-- Uses mapMaybe to extract only successful role assignments
+filterAssignableRoles :: [ColorCluster] -> [RoleAssignment]
+filterAssignableRoles clusters = mapMaybe tryAssign clusters
+  where
+    tryAssign c =
+      let cent = ccCentroid c
+          freq = ccFrequency c
+      in case selectRole cent [] of
+           Just r  -> Just $ RoleAssignment cent r freq
+           Nothing -> Nothing

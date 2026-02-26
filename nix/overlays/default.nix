@@ -1,8 +1,8 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-#                                                           // metxt // overlays
+#                                                         // foundry // overlays
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
-# Nixpkgs overlays for metxt
+# Nixpkgs overlays for foundry
 #
 # An overlay is a pure function from the world as it is to the world as it
 # ought to be.
@@ -12,13 +12,13 @@
 { inputs }:
 
 {
-  # Metxt-specific overlay
-  metxt = final: prev: {
-    # Haskell package overrides for metxt
+  # Foundry-specific overlay
+  foundry = final: prev: {
+    # Haskell package overrides for foundry
     haskellPackages = prev.haskellPackages.override {
       overrides = hfinal: hprev: {
-        # Add metxt Haskell packages here when created
-        # metxt-core = hfinal.callCabal2nix "metxt-core" ../../haskell/metxt-core { };
+        # Add foundry Haskell packages here when created
+        # foundry-core = hfinal.callCabal2nix "foundry-core" ../../haskell/foundry-core { };
       };
     };
   };

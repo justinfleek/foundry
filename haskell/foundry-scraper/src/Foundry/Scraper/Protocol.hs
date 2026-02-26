@@ -54,6 +54,7 @@ import Data.Aeson
   , (.:?)
   , (.=)
   )
+import Data.Aeson.Types (Parser)
 import Data.ByteString (ByteString)
 import Data.ByteString.Lazy qualified as LBS
 import Data.Aeson qualified as Aeson
@@ -138,7 +139,7 @@ data ScrapeResponse
 
 instance FromJSON ScrapeResponse where
   parseJSON = withObject "ScrapeResponse" $ \v -> do
-    msgType <- v .: "type" :: Aeson.Parser Text
+    msgType <- v .: "type" :: Parser Text
     case msgType of
       "success" -> ScrapeSuccess <$> v .: "result"
       "error"   -> ScrapeFailure <$> v .: "error"
@@ -160,6 +161,13 @@ instance FromJSON ScrapeError where
     <$> v .: "code"
     <*> v .: "message"
     <*> v .:? "details"
+
+instance ToJSON ScrapeError where
+  toJSON ScrapeError{..} = object
+    [ "code"    .= seCode
+    , "message" .= seMessage
+    , "details" .= seDetails
+    ]
 
 --------------------------------------------------------------------------------
 -- Encoding/Decoding

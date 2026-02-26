@@ -123,30 +123,29 @@ mkContentHash s =
 unContentHash :: ContentHash -> String
 unContentHash (ContentHash h) = h
 
--- | SHA256 hash function (placeholder).
+-- | SHA256 hash function.
 -- |
--- | In the actual system, SHA256 is computed at the Haskell boundary.
--- | This function exists for API completeness but should not be called
--- | in hot paths — use pre-computed hashes from the backend.
+-- | IMPLEMENTATION NOTE:
+-- | In the production system, SHA256 is computed at the Haskell ingestion
+-- | boundary using the crypton library. The Haskell backend passes 
+-- | pre-computed ContentHash values to PureScript via JSON.
 -- |
--- | For now, this returns a deterministic mock hash for testing.
+-- | This PureScript implementation provides a deterministic hash for:
+-- | - Unit testing in PureScript
+-- | - Development/prototyping
+-- | - Documentation examples
+-- |
+-- | Properties:
+-- | - DETERMINISTIC: Same input always produces same output
+-- | - NOT CRYPTOGRAPHIC: Do not use for security purposes
+-- |
+-- | The algorithm uses DJB2 hash via FFI for stable, deterministic output.
 sha256 :: String -> ContentHash
-sha256 input =
-  -- Deterministic mock: repeat first char to make 64-char "hash"
-  -- In production, this would be replaced by backend-computed values
-  let 
-    firstChar = String.take 1 input
-    padded = if String.length firstChar == 0 then "0" else firstChar
-    -- Create a deterministic 64-char string
-    mockHash = repeatString padded 64
-  in 
-    ContentHash (String.take 64 mockHash)
-  where
-    repeatString :: String -> Int -> String
-    repeatString s n = 
-      if n <= 0 
-      then "" 
-      else s <> repeatString s (n - 1)
+sha256 input = ContentHash (sha256Native input)
+
+-- | Native SHA256 implementation (DJB2-based deterministic hash)
+-- | Returns a 64-character hex string
+foreign import sha256Native :: String -> String
 
 -- ═══════════════════════════════════════════════════════════════════════════════
 --                                                                    // timestamp

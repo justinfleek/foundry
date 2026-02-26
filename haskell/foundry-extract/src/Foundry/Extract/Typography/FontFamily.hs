@@ -36,6 +36,9 @@ module Foundry.Extract.Typography.FontFamily
   , isSystemFont
   , isWebFont
   , genericFamilyName
+
+    -- * Character Classification
+  , isValidFontChar
   ) where
 
 import Data.Attoparsec.Text
@@ -214,3 +217,8 @@ genericFamilyName = \case
   Emoji       -> "emoji"
   Math        -> "math"
   Fangsong    -> "fangsong"
+
+-- | Check if a character is valid in a font name (non-whitespace)
+-- Uses isSpace to filter whitespace characters
+isValidFontChar :: Char -> Bool
+isValidFontChar c = not (isSpace c) && c /= ','

@@ -17,8 +17,13 @@ import { scrapeURL } from "./scraper.js";
 import type {
   ScrapeRequest,
   ScrapeResponse,
-  ScrapeOptions,
 } from "./types.js";
+
+/**
+ * Re-export ScrapeOptions for consumers that need to configure scrape requests.
+ * Used by foundry-scraper Haskell client when building request payloads.
+ */
+export type { ScrapeOptions } from "./types.js";
 
 // ============================================================================
 // Configuration
@@ -119,7 +124,7 @@ export class ScraperServer {
         error: {
           code: "SCRAPE_ERROR",
           message: error.message,
-          details: error.stack,
+          ...(error.stack !== undefined ? { details: error.stack } : {}),
         },
       };
     }

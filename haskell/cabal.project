@@ -10,7 +10,7 @@ packages:
   foundry-core/
   foundry-extract/
   foundry-storage/
-  -- foundry-scraper/  -- Requires libzmq (zeromq C library)
+  foundry-scraper/
 
 -- Use GHC 9.10 for stability
 -- with-compiler: ghc-9.10

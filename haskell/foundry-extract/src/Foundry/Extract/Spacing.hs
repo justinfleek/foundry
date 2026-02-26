@@ -47,7 +47,12 @@ import Data.Ord (comparing)
 import Data.Vector (Vector)
 import Data.Vector qualified as V
 
-import Foundry.Core.Brand.Spacing (SpacingScale (..), SpacingUnit (..))
+import Foundry.Core.Brand.Spacing 
+  ( LengthUnit (..)
+  , SpacingScale (..)
+  , SpacingValue (..)
+  , mkSpacingValue
+  )
 import Foundry.Extract.Types
   ( ComputedStyle (..)
   , ElementStyles (..)
@@ -63,6 +68,8 @@ import Foundry.Extract.Types
 data SpacingExtractionResult = SpacingExtractionResult
   { serSpacing  :: !SpacingScale
     -- ^ Extracted spacing scale
+  , serValues   :: ![SpacingValue]
+    -- ^ Individual spacing values with inferred units
   , serAnalysis :: !SpacingAnalysis
     -- ^ Analysis details
   , serWarnings :: ![ExtractionWarning]
@@ -90,24 +97,50 @@ data SpacingAnalysis = SpacingAnalysis
 -- | Extract spacing scale from scrape result
 extractSpacing :: ScrapeResult -> SpacingExtractionResult
 extractSpacing sr =
-  let -- Collect all spacing values
-      spacingValues = extractSpacingValues (srComputedStyles sr)
+  let -- Collect all spacing values (raw doubles)
+      rawValues = extractSpacingValues (srComputedStyles sr)
+      valueList = V.toList rawValues
       
-      -- Analyze
-      analysis = analyzeSpacing (V.toList spacingValues)
+      -- Analyze to find base unit and multipliers
+      analysis = analyzeSpacing valueList
+      baseUnit = saBaseUnit analysis
       
       -- Build SpacingScale (convert px to rem, assuming 16px base)
       scale = SpacingScale
-        { spacingScaleBase = saBaseUnit analysis / 16
+        { spacingScaleBase = baseUnit / 16
         , spacingScaleRatio = if length (saMultipliers analysis) >= 2
                               then detectRatio (saMultipliers analysis)
                               else 2.0  -- Default to doubling
         }
       
+      -- Convert raw values to SpacingValues with inferred units
+      -- Sort by frequency to prioritize commonly-used values
+      valueCounts = countValues valueList
+      sortedByFreq = sortByFrequency valueCounts
+      spacingVals = map (\(v, _count) -> toSpacingValue baseUnit v) sortedByFreq
+      
       warnings = if saSamples analysis < 5
                  then [WarnNoSpacingScale]
                  else []
-  in SpacingExtractionResult scale analysis warnings
+  in SpacingExtractionResult scale spacingVals analysis warnings
+
+-- | Count occurrences of each spacing value
+countValues :: [Double] -> [(Double, Int)]
+countValues values = 
+  let grouped = groupByValue (sort values)
+  in map (\vs -> (safeHead 0 vs, length vs)) grouped
+  where
+    -- Group consecutive equal values
+    groupByValue :: [Double] -> [[Double]]
+    groupByValue [] = []
+    groupByValue (x:xs) = 
+      let (same, rest) = span (== x) xs
+      in (x : same) : groupByValue rest
+    
+    -- Safe head that returns a default for empty lists
+    safeHead :: Double -> [Double] -> Double
+    safeHead def [] = def
+    safeHead _ (x:_) = x
 
 -- | Extract all margin/padding values from computed styles
 extractSpacingValues :: Vector ElementStyles -> Vector Double
@@ -260,3 +293,30 @@ detectSpacingScale values
 minimumByMay :: (a -> a -> Ordering) -> [a] -> Maybe a
 minimumByMay _ [] = Nothing
 minimumByMay cmp (x:xs) = Just $ foldl (\a b -> if cmp a b == LT then a else b) x xs
+
+-- | Sort spacing values by their frequency in usage
+-- Uses sortBy for custom comparison
+sortByFrequency :: [(Double, Int)] -> [(Double, Int)]
+sortByFrequency = sortBy (flip (comparing snd))
+
+-- | Convert base unit to LengthUnit type.
+--
+-- This preserves the unit type information for downstream processing.
+-- Common base units map to their typical CSS representation:
+--   - 4px, 8px bases → Px (pixel-based grids)
+--   - 16px base → Rem (rem-based systems, 1rem = 16px default)
+baseToLengthUnit :: Double -> LengthUnit
+baseToLengthUnit base
+  | base == 4  = Px
+  | base == 8  = Px
+  | base == 16 = Rem
+  | otherwise  = Px  -- Default to pixels
+
+-- | Convert a detected spacing value to a SpacingValue with inferred unit.
+--
+-- Uses the base unit detection to determine whether the spacing system
+-- is pixel-based or rem-based.
+toSpacingValue :: Double -> Double -> SpacingValue
+toSpacingValue base value =
+  let unit = baseToLengthUnit base
+  in mkSpacingValue value unit

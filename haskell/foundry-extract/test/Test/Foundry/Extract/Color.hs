@@ -60,10 +60,16 @@ prop_hexColor_parse = property $ do
 
 toHex :: Int -> Text
 toHex n = 
-  let hexChars = "0123456789abcdef"
+  let hexChars :: [Char]
+      hexChars = "0123456789abcdef"
       hi = (n `div` 16) `mod` 16
       lo = n `mod` 16
-  in pack [hexChars !! hi, hexChars !! lo]
+      -- Safe indexing: hexChars is exactly 16 chars, indices are mod 16, always valid
+      safeIndex :: [Char] -> Int -> Char
+      safeIndex cs i = case drop i cs of
+        (c : _) -> c
+        []      -> '0'  -- fallback, should never happen with mod 16
+  in pack [safeIndex hexChars hi, safeIndex hexChars lo]
 
 genOKLCH :: Gen OKLCH'
 genOKLCH = OKLCH'

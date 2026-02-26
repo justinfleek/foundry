@@ -35,11 +35,9 @@ module Foundry.Extract.Typography
   , module Foundry.Extract.Typography.Scale
   ) where
 
-import Data.List (sortBy)
+import Data.List (sort)
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
-import Data.Maybe (catMaybes, listToMaybe, mapMaybe)
-import Data.Ord (Down (..), comparing)
 import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Vector (Vector)
@@ -48,8 +46,11 @@ import Data.Vector qualified as V
 import Foundry.Core.Brand.Typography 
   ( FontFamily (..)
   , FontWeight (..)
+  , Kerning (..)
   , LineHeight (..)
+  , TypeLevel (..)
   , TypeScale (..)
+  , TypeScaleEntry (..)
   , Typography (..)
   )
 import Foundry.Extract.Typography.FontFamily
@@ -124,6 +125,9 @@ extractTypography sr = do
       let defaultHeadingLH = LineHeight 1.3
           defaultBodyLH = LineHeight 1.6
       
+      -- Build scale table from detected sizes, normalized to rem units
+      let scaleTable = buildScaleTable fontSizes mScale
+      
       Right $ TypographyExtractionResult
         { terTypography = Typography
             { typographyHeadingFamily = finalHeading
@@ -131,7 +135,7 @@ extractTypography sr = do
             , typographyScale = typeScale
             , typographyHeadingLH = defaultHeadingLH
             , typographyBodyLH = defaultBodyLH
-            , typographyScaleTable = V.empty  -- TODO: build scale table from detected sizes
+            , typographyScaleTable = scaleTable
             }
         , terScale = mScale
         , terWarnings = warnings
@@ -313,3 +317,109 @@ maximumEntry m = case Map.toList m of
 -- | Extract font sizes from computed styles
 extractFontSizes :: Vector ElementStyles -> Vector Double
 extractFontSizes = V.mapMaybe (\es -> csFontSize (esStyles es))
+
+--------------------------------------------------------------------------------
+-- Scale Table Construction
+--------------------------------------------------------------------------------
+
+-- | Build a scale table from detected font sizes.
+-- |
+-- | The scale table contains TypeScaleEntry values for each detected size level.
+-- | If a DetectedScale is provided, we use its base size for calculations.
+-- | Otherwise, we assume 16px = 1rem.
+-- |
+-- | This implements the SMART Brand Framework's typography scale (Section 18):
+-- | - Level assignment based on relative size (larger = higher heading level)
+-- | - Default line heights and kerning per level
+-- | - Practical sizes from actual website usage
+buildScaleTable :: Vector Double -> Maybe DetectedScale -> Vector TypeScaleEntry
+buildScaleTable fontSizes mScale =
+  let -- Use detected base size or default 16px
+      basePixels = maybe 16.0 dsBaseSize mScale
+      
+      -- Get unique sizes, sort descending (largest first for heading assignment)
+      sizeList = V.toList fontSizes
+      
+      -- Filter to reasonable range (8px to 96px) to avoid outliers
+      validSizes = filter (\s -> s >= 8.0 && s <= 96.0) sizeList
+      
+      -- Sort descending and remove near-duplicates (within 1px tolerance)
+      sortedSizes = reverse $ sort validSizes
+      dedupedSizes = deduplicateNear 1.0 sortedSizes
+      
+      -- Assign levels based on position (largest = HL, smallest = footnote/small)
+      leveledSizes = assignLevels dedupedSizes basePixels
+      
+  in V.fromList leveledSizes
+  where
+    -- Remove values within tolerance of each other (assumes sorted input)
+    deduplicateNear :: Double -> [Double] -> [Double]
+    deduplicateNear _ [] = []
+    deduplicateNear tol (x:xs) = x : deduplicateNear tol (dropWhile (\y -> abs (y - x) < tol) xs)
+    
+    -- Assign TypeLevel to each size based on position in sorted list
+    assignLevels :: [Double] -> Double -> [TypeScaleEntry]
+    assignLevels sizes base = zipWith (makeEntry base) levels sizes
+      where
+        -- Available levels from largest to smallest
+        allLevels = [LevelHL, LevelH1, LevelH2, LevelH3, LevelH4, LevelH5, LevelH6, LevelP, LevelSmall, LevelFootnote]
+        -- Take as many levels as we have sizes
+        levels = take (length sizes) allLevels
+    
+    -- Create a TypeScaleEntry for a given level and size
+    makeEntry :: Double -> TypeLevel -> Double -> TypeScaleEntry
+    makeEntry _base level sizePx = TypeScaleEntry
+      { tseLevel = level
+      , tseSize = sizePx
+      , tseFont = "extracted"  -- Will be overridden by actual font
+      , tseWeight = FontWeight (defaultWeightForLevel level)
+      , tseLineHeight = LineHeight (defaultLineHeightForLevel level)
+      , tseKerning = Kerning (defaultKerningForLevel level)
+      , tseUsage = defaultUsageForLevel level
+      }
+    
+    -- Default font weight per level (SMART Framework defaults)
+    defaultWeightForLevel :: TypeLevel -> Int
+    defaultWeightForLevel LevelHL = 700
+    defaultWeightForLevel LevelH1 = 700
+    defaultWeightForLevel LevelH2 = 700
+    defaultWeightForLevel LevelH3 = 600
+    defaultWeightForLevel LevelH4 = 600
+    defaultWeightForLevel LevelH5 = 500
+    defaultWeightForLevel LevelH6 = 500
+    defaultWeightForLevel LevelP = 400
+    defaultWeightForLevel LevelSmall = 400
+    defaultWeightForLevel LevelFootnote = 400
+    
+    -- Default line height per level
+    defaultLineHeightForLevel :: TypeLevel -> Double
+    defaultLineHeightForLevel LevelHL = 1.1
+    defaultLineHeightForLevel LevelH1 = 1.2
+    defaultLineHeightForLevel LevelH2 = 1.2
+    defaultLineHeightForLevel LevelH3 = 1.3
+    defaultLineHeightForLevel LevelH4 = 1.3
+    defaultLineHeightForLevel LevelH5 = 1.4
+    defaultLineHeightForLevel LevelH6 = 1.4
+    defaultLineHeightForLevel LevelP = 1.6
+    defaultLineHeightForLevel LevelSmall = 1.5
+    defaultLineHeightForLevel LevelFootnote = 1.4
+    
+    -- Default kerning per level (tighter for headlines)
+    defaultKerningForLevel :: TypeLevel -> Double
+    defaultKerningForLevel LevelHL = -0.02
+    defaultKerningForLevel LevelH1 = -0.01
+    defaultKerningForLevel LevelH2 = -0.01
+    defaultKerningForLevel _ = 0.0
+    
+    -- Default usage description per level
+    defaultUsageForLevel :: TypeLevel -> Text
+    defaultUsageForLevel LevelHL = "Hero sections, display text"
+    defaultUsageForLevel LevelH1 = "Page titles"
+    defaultUsageForLevel LevelH2 = "Section headings"
+    defaultUsageForLevel LevelH3 = "Subsection headings"
+    defaultUsageForLevel LevelH4 = "Minor headings"
+    defaultUsageForLevel LevelH5 = "Small headings"
+    defaultUsageForLevel LevelH6 = "Smallest headings"
+    defaultUsageForLevel LevelP = "Body text"
+    defaultUsageForLevel LevelSmall = "De-emphasized text"
+    defaultUsageForLevel LevelFootnote = "Legal text, citations"

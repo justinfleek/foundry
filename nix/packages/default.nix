@@ -1,8 +1,8 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-#                                                           // metxt // packages
+#                                                         // foundry // packages
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
-# Package definitions for metxt
+# Package definitions for foundry
 #
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -10,11 +10,11 @@
 
 {
   # Haskell packages (to be implemented)
-  # metxt-core = hpkgs.callCabal2nix "metxt-core" ../../haskell/metxt-core { };
-  # metxt-extract = hpkgs.callCabal2nix "metxt-extract" ../../haskell/metxt-extract { };
-  # metxt-scraper = hpkgs.callCabal2nix "metxt-scraper" ../../haskell/metxt-scraper { };
-  # metxt-storage = hpkgs.callCabal2nix "metxt-storage" ../../haskell/metxt-storage { };
+  # foundry-core = hpkgs.callCabal2nix "foundry-core" ../../haskell/foundry-core { };
+  # foundry-extract = hpkgs.callCabal2nix "foundry-extract" ../../haskell/foundry-extract { };
+  # foundry-scraper = hpkgs.callCabal2nix "foundry-scraper" ../../haskell/foundry-scraper { };
+  # foundry-storage = hpkgs.callCabal2nix "foundry-storage" ../../haskell/foundry-storage { };
 
   # PureScript bundle (to be implemented)
-  # metxt-ui = pkgs.runCommand "metxt-ui" { ... } ''...''
+  # foundry-ui = pkgs.runCommand "foundry-ui" { ... } ''...''
 }

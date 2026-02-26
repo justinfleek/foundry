@@ -1,6 +1,6 @@
 # FOUNDRY - Production Release TODO
 
-**Target: System F Omega | 100% Production Grade**
+**Target: System F Omega | 100% Production Grade | COMPASS Integration**
 
 **Status Legend:**
 - `[ ]` Not started
@@ -8,300 +8,204 @@
 - `[x]` Complete
 - `[!]` Blocked
 
+**Related Documents:**
+- `docs/PRODUCTION_INTEGRATION_PLAN.md` — Council-approved integration plan
+- `docs/TECHNICAL_SPECIFICATIONS.md` — Type definitions and algorithms
+- `docs/CROSS_REPOSITORY_ALIGNMENT.md` — FOUNDRY ↔ HYDROGEN ↔ COMPASS sync
+
 ---
 
-## PHASE 0: CRITICAL FIXES (MUST DO FIRST)
+## CURRENT STATE (2026-02-26)
 
-### 0.1 Remove Forbidden Patterns
+### Build Status
+
+| Component | Build | Tests | Notes |
+|-----------|-------|-------|-------|
+| **foundry-core** | `[x]` | 148 passing | Brand, Agent, Effect, Evring, Sigil |
+| **foundry-extract** | `[x]` | 48 passing | Color, Typography, Spacing, Voice |
+| **foundry-storage** | `[x]` | 22 passing | HAMT, DuckDB, Postgres adapters |
+| **foundry-scraper** | `[!]` | 0 (blocked) | Commented out - requires libzmq |
+| **PureScript** | `[!]` | N/A | Spago cache issue (network) |
+| **Lean4 (Cornell)** | `[~]` | N/A | Import fixed, ByteArray API mismatch |
+| **Lean4 (Brand)** | `[!]` | N/A | Blocked on Hydrogen dependency |
+
+**Total: 218 Haskell tests passing**
+
+### Codebase Size
+
+| Language | Source Lines | Test Lines | Notes |
+|----------|--------------|------------|-------|
+| Haskell | ~15,700 | ~5,800 | 4 packages |
+| PureScript | ~8,000 | 0 | Brand schemas |
+| Lean4 | ~22,500 | N/A | Cornell, Pipeline, Sigil |
+| TypeScript | ~1,050 | 0 | Playwright scraper |
+| Dhall | ~24k chars | N/A | Pipeline/Resource config |
+| C++ | ~24k chars | N/A | Evring/Sigil header |
+
+---
+
+## PHASE 0: CRITICAL FIXES
+
+### 0.1 Forbidden Patterns in Source (PRODUCTION CODE)
 
 | Status | File | Line | Issue | Fix |
 |--------|------|------|-------|-----|
-| `[ ]` | `foundry-storage/test/Test/Foundry/Storage/HAMT.hs` | 151 | Uses `undefined` | Use proper pattern matching or `error` with clear message |
-| `[ ]` | `foundry-storage/bench/Main.hs` | 135 | Uses `Prelude.head` | Use `listToMaybe` or pattern match |
-| `[ ]` | `foundry-extract/test/Test/Foundry/Extract/Color.hs` | 66 | Uses `!!` operator | Use safe indexing with bounds check |
+| `[x]` | `foundry-core/src/Foundry/Core/Effect/Graded.hs` | 22 | `undefined` in grade function | Was only in Haddock comment (spec, not code) |
+| `[x]` | `foundry-core/src/Foundry/Core/Evring/Wai/MultiCoreRR.hs` | 194 | `!! idx` unsafe index | Converted to Vector with V.! safe indexing |
 
-### 0.2 Complete Stub Implementations
+### 0.2 Error Calls in Evring (Low-level IO)
 
-| Status | File | Line | Issue | Fix |
-|--------|------|------|-------|-----|
-| `[ ]` | `foundry-extract/src/Foundry/Extract/Typography.hs` | 134 | `typographyScaleTable = V.empty` TODO | Build scale table from detected font sizes |
-| `[ ]` | `src/Brand/Provenance.purs` | 126-149 | Mock SHA256 implementation | Implement real SHA256 or FFI to Haskell |
+These are in io_uring code paths where failure is unrecoverable:
 
-### 0.3 Remove TODO Comments
-
-| Status | File | Line | Content |
+| Status | File | Line | Context |
 |--------|------|------|---------|
-| `[ ]` | `flake.nix` | 94 | Re-enable sensenet integration |
-| `[ ]` | `foundry-extract/src/Foundry/Extract/Typography.hs` | 134 | Build scale table |
+| `[~]` | `Evring/Wai/Conn.hs` | 324 | Response buffer overflow |
+| `[~]` | `Evring/Wai/Loop.hs` | 126,156,175,193,211 | SQ full conditions |
+
+**Note**: These may be acceptable - io_uring exhaustion is a fatal condition.
+
+### 0.3 Lean4 Import Fix
+
+| Status | File | Line | Issue | Fix |
+|--------|------|------|-------|-----|
+| `[x]` | `lean/Foundry/Cornell/Basic.lean` | 12 | `import Foundry.Foundry.Cornell.Proofs` | Fixed to `import Foundry.Cornell.Proofs` |
+
+### 0.4 Lean4 ByteArray API (4.15.0)
+
+| Status | File | Issue | Fix |
+|--------|------|-------|-----|
+| `[~]` | `lean/Foundry/Cornell/Proofs.lean` | Missing `ByteArray.getElem_append_left` | Need to define locally or find new API |
+| `[~]` | `lean/Foundry/Cornell/Proofs.lean` | Missing `ByteArray.size_append` | Need to define locally or find new API |
+| `[~]` | `lean/Foundry/Cornell/Proofs.lean` | Missing `ByteArray.extract_append_eq_right` | Need to define locally or find new API |
+
+### 0.5 Stubs Completed (VERIFIED)
+
+| Status | File | Issue | Resolution |
+|--------|------|-------|------------|
+| `[x]` | `foundry-extract/src/Foundry/Extract/Typography.hs` | `typographyScaleTable` | Now populated from detected sizes |
+
+### 0.6 Rename metxt → foundry (COMPLETED)
+
+| Status | File | Notes |
+|--------|------|-------|
+| `[x]` | `flake.nix` | Dev shell, comments, package refs |
+| `[x]` | `nix/modules/default.nix` | Module names |
+| `[x]` | `nix/overlays/default.nix` | Overlay names |
+| `[x]` | `nix/packages/default.nix` | Package refs |
+| `[x]` | `spago.yaml` | Package name: foundry-brand |
+| `[x]` | `purescript/foundry-playground/spago.yaml` | Package name + directory renamed |
 
 ---
 
-## PHASE 1: CODE QUALITY (System F Omega Compliance)
+## PHASE 1: CODE QUALITY
 
-### 1.1 Explicit Imports (371 `(..)` patterns to fix)
+### 1.1 Explicit Imports
 
-**Priority files (most violations):**
+**Current count: 519 `(..)` patterns**
 
-| Status | File | Count | Type |
-|--------|------|-------|------|
-| `[ ]` | `foundry-core/test/Test/Foundry/Core/Brand/Editorial.hs` | 21 | Imports |
-| `[ ]` | `foundry-core/test/Test/Foundry/Core/Brand/Generators.hs` | 18 | Imports |
-| `[ ]` | `foundry-core/src/Foundry/Core/Brand/Editorial.hs` | 17 | Exports |
-| `[ ]` | `foundry-extract/src/Foundry/Extract/Typography.hs` | 15 | Imports |
-| `[ ]` | `foundry-extract/src/Foundry/Extract/Types.hs` | 14 | Exports |
-| `[ ]` | `foundry-extract/src/Foundry/Extract/Voice.hs` | 12 | Imports |
-| `[ ]` | `foundry-core/src/Foundry/Core/Brand/Logo.hs` | 12 | Exports |
-| `[ ]` | `foundry-extract/src/Foundry/Extract/Color.hs` | 11 | Imports |
+Priority files (by violation count):
 
-**All modules requiring explicit imports:**
-
-```
-foundry-core/src/
-[ ] Foundry/Core.hs
-[ ] Foundry/Core/Agent.hs
-[ ] Foundry/Core/Agent/Budget.hs
-[ ] Foundry/Core/Agent/Context.hs
-[ ] Foundry/Core/Agent/Permission.hs
-[ ] Foundry/Core/Brand.hs
-[ ] Foundry/Core/Brand/Color.hs
-[ ] Foundry/Core/Brand/Customer.hs
-[ ] Foundry/Core/Brand/Editorial.hs
-[ ] Foundry/Core/Brand/Gradient.hs
-[ ] Foundry/Core/Brand/Gradient/Rules.hs
-[ ] Foundry/Core/Brand/Identity.hs
-[ ] Foundry/Core/Brand/Logo.hs
-[ ] Foundry/Core/Brand/Logo/Sizing.hs
-[ ] Foundry/Core/Brand/Logo/Usage.hs
-[ ] Foundry/Core/Brand/Overview.hs
-[ ] Foundry/Core/Brand/Palette.hs
-[ ] Foundry/Core/Brand/Provenance.hs
-[ ] Foundry/Core/Brand/Spacing.hs
-[ ] Foundry/Core/Brand/Strategy.hs
-[ ] Foundry/Core/Brand/Tagline.hs
-[ ] Foundry/Core/Brand/Typography.hs
-[ ] Foundry/Core/Brand/Voice.hs
-[ ] Foundry/Core/Effect.hs
-[ ] Foundry/Core/Effect/CoEffect.hs
-[ ] Foundry/Core/Effect/Graded.hs
-[ ] Foundry/Core/Text.hs
-
-foundry-extract/src/
-[ ] Foundry/Extract.hs
-[ ] Foundry/Extract/Color.hs
-[ ] Foundry/Extract/Color/CSS.hs
-[ ] Foundry/Extract/Color/Cluster.hs
-[ ] Foundry/Extract/Color/Role.hs
-[ ] Foundry/Extract/Compose.hs
-[ ] Foundry/Extract/Spacing.hs
-[ ] Foundry/Extract/Typography.hs
-[ ] Foundry/Extract/Typography/FontFamily.hs
-[ ] Foundry/Extract/Typography/Scale.hs
-[ ] Foundry/Extract/Types.hs
-[ ] Foundry/Extract/Voice.hs
-[ ] Foundry/Extract/Voice/NLP.hs
-[ ] Foundry/Extract/Voice/Tone.hs
-
-foundry-storage/src/
-[ ] Foundry/Storage.hs
-[ ] Foundry/Storage/DuckDB.hs
-[ ] Foundry/Storage/HAMT.hs
-[ ] Foundry/Storage/Postgres.hs
-[ ] Foundry/Storage/Types.hs
-
-foundry-scraper/src/
-[ ] Foundry/Scraper.hs
-[ ] Foundry/Scraper/Client.hs
-[ ] Foundry/Scraper/Config.hs
-[ ] Foundry/Scraper/Protocol.hs
-
-Test files:
-[ ] All test files in foundry-core/test/
-[ ] All test files in foundry-extract/test/
-[ ] All test files in foundry-storage/test/
-[ ] All test files in foundry-scraper/test/
-```
+| Status | File | Count |
+|--------|------|-------|
+| `[ ]` | `foundry-core/test/Test/Foundry/Core/Brand/Editorial.hs` | 21 |
+| `[ ]` | `foundry-core/test/Test/Foundry/Core/Brand/Generators.hs` | 18 |
+| `[ ]` | `foundry-core/src/Foundry/Core/Brand/Editorial.hs` | 17 |
+| `[ ]` | `foundry-extract/src/Foundry/Extract/Typography.hs` | 15 |
+| `[ ]` | `foundry-extract/src/Foundry/Extract/Types.hs` | 14 |
 
 ### 1.2 File Size Compliance (500 line max)
 
 | Status | File | Lines | Action |
 |--------|------|-------|--------|
-| `[ ]` | `foundry-core/test/Test/Foundry/Core/Brand/Generators.hs` | 809 | Split into Generators/*.hs modules |
-| `[ ]` | `scraper/src/scraper.ts` | 591 | Split into scraper/extraction/*.ts |
-| `[ ]` | `foundry-extract/test/Test/Foundry/Extract/Security.hs` | 569 | Split by category (Color, Typography, etc.) |
-| `[ ]` | `foundry-core/src/Foundry/Core/Brand/Editorial.hs` | 506 | Split Contact/Social into submodules |
+| `[ ]` | `foundry-core/src/Foundry/Core/Evring/Wai.hs` | 977 | Split into Wai/*.hs modules |
+| `[ ]` | `foundry-core/src/Foundry/Core/Evring/Event.hs` | 590 | Split event types |
+| `[ ]` | `scraper/src/scraper.ts` | 591 | Split into extraction/*.ts |
+| `[ ]` | `foundry-core/src/Foundry/Core/Evring/Zmtp.hs` | 545 | Split ZMTP state machine |
+| `[ ]` | `foundry-core/src/Foundry/Core/Sigil/Sigil.hs` | 529 | Split protocol layers |
+| `[ ]` | `foundry-core/src/Foundry/Core/Brand/Editorial.hs` | 506 | Split Contact/Social |
 
-### 1.3 StrictData Compliance
+### 1.3 TODOs in Evring (In Progress Work)
 
-| Status | Package | Action |
-|--------|---------|--------|
-| `[ ]` | foundry-core | Audit all record fields for `!` bang patterns |
-| `[ ]` | foundry-extract | Audit all record fields for `!` bang patterns |
-| `[ ]` | foundry-storage | Audit all record fields for `!` bang patterns |
-| `[ ]` | foundry-scraper | Audit all record fields for `!` bang patterns |
+| Status | File | Line | Content |
+|--------|------|------|---------|
+| `[~]` | `Evring/Ring.hs` | 182,188 | Implement actual io_uring |
+| `[~]` | `Evring/Trace.hs` | 79,83 | Implement serialize/deserialize |
+| `[~]` | `Evring/Wai.hs` | 430,676,970 | io_uring timeout, accept addr, zero-copy |
+| `[~]` | `Evring/Zmtp.hs` | 402,486,501,517 | READY parse, greeting, events |
 
 ---
 
-## PHASE 2: TEST COVERAGE ("EVERYONE gets tested")
+## PHASE 2: TEST COVERAGE
 
-### 2.1 Haskell Module Tests
+### 2.1 Current Test Distribution
 
-**foundry-core modules needing tests:**
+```
+foundry-core:    148 tests
+  - Brand/Editorial, Strategy, Tagline
+  - Agent (full)
+  - Effect/CoEffect, Graded
+  - Security (injection, memory, parser, cross-module)
 
-| Status | Module | Test File |
-|--------|--------|-----------|
-| `[ ]` | `Brand/Overview.hs` | `Test/Foundry/Core/Brand/Overview.hs` |
-| `[ ]` | `Brand/Customer.hs` | `Test/Foundry/Core/Brand/Customer.hs` |
-| `[ ]` | `Brand/Typography.hs` | `Test/Foundry/Core/Brand/Typography.hs` |
-| `[ ]` | `Brand/Color.hs` | `Test/Foundry/Core/Brand/Color.hs` |
-| `[ ]` | `Brand/Identity.hs` | `Test/Foundry/Core/Brand/Identity.hs` |
-| `[ ]` | `Brand/Gradient.hs` | `Test/Foundry/Core/Brand/Gradient.hs` |
-| `[ ]` | `Brand/Gradient/Rules.hs` | `Test/Foundry/Core/Brand/Gradient/Rules.hs` |
-| `[ ]` | `Brand/Voice.hs` | `Test/Foundry/Core/Brand/Voice.hs` |
-| `[ ]` | `Brand/Palette.hs` | `Test/Foundry/Core/Brand/Palette.hs` |
-| `[ ]` | `Brand/Logo.hs` | `Test/Foundry/Core/Brand/Logo.hs` |
-| `[ ]` | `Brand/Logo/Usage.hs` | `Test/Foundry/Core/Brand/Logo/Usage.hs` |
-| `[ ]` | `Brand/Logo/Sizing.hs` | `Test/Foundry/Core/Brand/Logo/Sizing.hs` |
-| `[ ]` | `Brand/Spacing.hs` | `Test/Foundry/Core/Brand/Spacing.hs` |
-| `[ ]` | `Brand/Provenance.hs` | `Test/Foundry/Core/Brand/Provenance.hs` |
-| `[ ]` | `Agent/Context.hs` | `Test/Foundry/Core/Agent/Context.hs` |
-| `[ ]` | `Agent/Permission.hs` | `Test/Foundry/Core/Agent/Permission.hs` |
-| `[ ]` | `Agent/Budget.hs` | `Test/Foundry/Core/Agent/Budget.hs` |
-| `[ ]` | `Effect/CoEffect.hs` | `Test/Foundry/Core/Effect/CoEffect.hs` |
-| `[ ]` | `Effect/Graded.hs` | `Test/Foundry/Core/Effect/Graded.hs` |
-| `[ ]` | `Text.hs` | `Test/Foundry/Core/Text.hs` |
+foundry-extract:  48 tests
+  - Color (CSS, Cluster, Role)
+  - Typography (Scale, FontFamily)
+  - Spacing
+  - Voice (NLP, Tone)
 
-**foundry-extract modules needing dedicated tests:**
+foundry-storage:  22 tests
+  - HAMT operations
+```
 
-| Status | Module | Test File |
-|--------|--------|-----------|
-| `[ ]` | `Color/Cluster.hs` | `Test/Foundry/Extract/Color/Cluster.hs` |
-| `[ ]` | `Color/Role.hs` | `Test/Foundry/Extract/Color/Role.hs` |
-| `[ ]` | `Color/CSS.hs` | `Test/Foundry/Extract/Color/CSS.hs` |
-| `[ ]` | `Typography/FontFamily.hs` | `Test/Foundry/Extract/Typography/FontFamily.hs` |
-| `[ ]` | `Typography/Scale.hs` | `Test/Foundry/Extract/Typography/Scale.hs` |
-| `[ ]` | `Voice/NLP.hs` | `Test/Foundry/Extract/Voice/NLP.hs` |
-| `[ ]` | `Voice/Tone.hs` | `Test/Foundry/Extract/Voice/Tone.hs` |
+### 2.2 Missing Test Coverage
 
-**foundry-storage modules needing tests:**
+| Status | Module | Priority |
+|--------|--------|----------|
+| `[ ]` | `Evring/*` | High - new io_uring code |
+| `[ ]` | `Sigil/*` | High - binary protocol |
+| `[ ]` | PureScript schemas | Medium |
+| `[ ]` | Integration (ZMQ) | Blocked on libzmq |
 
-| Status | Module | Test File |
-|--------|--------|-----------|
-| `[ ]` | `Storage/DuckDB.hs` | `Test/Foundry/Storage/DuckDB.hs` |
-| `[ ]` | `Storage/Postgres.hs` | `Test/Foundry/Storage/Postgres.hs` |
-| `[ ]` | `Storage/Types.hs` | `Test/Foundry/Storage/Types.hs` |
-
-**foundry-scraper modules needing tests:**
-
-| Status | Module | Test File |
-|--------|--------|-----------|
-| `[ ]` | `Scraper/Config.hs` | `Test/Foundry/Scraper/Config.hs` |
-| `[ ]` | `Scraper/Client.hs` | `Test/Foundry/Scraper/Client.hs` |
-
-### 2.2 PureScript Tests (NONE EXIST)
-
-| Status | Module | Test File |
-|--------|--------|-----------|
-| `[ ]` | `Brand/Brand.purs` | `test/Brand/Brand.purs` |
-| `[ ]` | `Brand/Identity.purs` | `test/Brand/Identity.purs` |
-| `[ ]` | `Brand/Palette.purs` | `test/Brand/Palette.purs` |
-| `[ ]` | `Brand/Typography.purs` | `test/Brand/Typography.purs` |
-| `[ ]` | `Brand/Spacing.purs` | `test/Brand/Spacing.purs` |
-| `[ ]` | `Brand/Voice.purs` | `test/Brand/Voice.purs` |
-| `[ ]` | `Brand/Strategy.purs` | `test/Brand/Strategy.purs` |
-| `[ ]` | `Brand/Editorial.purs` | `test/Brand/Editorial.purs` |
-| `[ ]` | `Brand/Logo.purs` | `test/Brand/Logo.purs` |
-| `[ ]` | `Brand/Provenance.purs` | `test/Brand/Provenance.purs` |
-| `[ ]` | `Brand/Layout.purs` | `test/Brand/Layout.purs` |
-| `[ ]` | `Brand/Modes.purs` | `test/Brand/Modes.purs` |
-| `[ ]` | `Brand/GraphicElements.purs` | `test/Brand/GraphicElements.purs` |
-| `[ ]` | `Brand/UIElements.purs` | `test/Brand/UIElements.purs` |
-| `[ ]` | `Brand/UIElements/Buttons.purs` | `test/Brand/UIElements/Buttons.purs` |
-| `[ ]` | `Brand/UIElements/Accessibility.purs` | `test/Brand/UIElements/Accessibility.purs` |
-| `[ ]` | `Brand/Strategy/Compound.purs` | `test/Brand/Strategy/Compound.purs` |
-| `[ ]` | `Brand/Editorial/Contact.purs` | `test/Brand/Editorial/Contact.purs` |
-| `[ ]` | `Brand/Editorial/Spelling.purs` | `test/Brand/Editorial/Spelling.purs` |
-| `[ ]` | `Brand/Logo/Usage.purs` | `test/Brand/Logo/Usage.purs` |
-
-### 2.3 Property-Based Testing
+### 2.3 Property-Based Testing Status
 
 | Status | Category | Description |
 |--------|----------|-------------|
-| `[x]` | Color invariants | OKLCH lightness/chroma bounds, CSS parsing roundtrip |
-| `[x]` | Typography invariants | Scale ratio positivity, font stack ordering |
-| `[x]` | Spacing invariants | Scale monotonicity, ratio bounds |
-| `[x]` | Voice security | Injection immunity, emoji handling |
-| `[ ]` | Brand roundtrip | JSON encode/decode preserves equality |
-| `[ ]` | Agent budget | Budget conservation under operations |
-| `[ ]` | Permission lattice | Monotonicity, subset relations |
-| `[ ]` | Graded monad laws | Left identity, right identity, associativity |
-| `[ ]` | Coeffect algebra | Idempotency, monotonicity, associativity |
-
-### 2.4 Integration Tests
-
-| Status | Test | Description | Blocked By |
-|--------|------|-------------|------------|
-| `[!]` | Full pipeline | URL -> Brand extraction | libzmq, sandbox |
-| `[!]` | Scraper ZMQ | Haskell client <-> TS server | libzmq |
-| `[ ]` | HAMT persistence | Write -> Read consistency | None |
-| `[ ]` | DuckDB storage | L2 cache operations | DuckDB bindings |
-| `[ ]` | PostgreSQL storage | L3 persistence | PostgreSQL bindings |
-
-### 2.5 Golden Tests
-
-| Status | Brand | URL | Description |
-|--------|-------|-----|-------------|
-| `[ ]` | Stripe | stripe.com | Blue/purple palette, Inter font |
-| `[ ]` | Vercel | vercel.com | Black/white minimal, Geist font |
-| `[ ]` | Linear | linear.app | Purple gradient, custom typography |
-| `[ ]` | Tailwind | tailwindcss.com | Multi-color palette, documentation brand |
-
-### 2.6 Resilience Tests
-
-| Status | Test | Description |
-|--------|------|-------------|
-| `[ ]` | Save/undo | State persistence and rollback |
-| `[ ]` | Reload | Session recovery after crash |
-| `[ ]` | Corruption recovery | Graceful handling of malformed data |
-| `[ ]` | Timeout handling | Scraper timeout doesn't crash pipeline |
-| `[ ]` | Memory bounds | Large brand extraction stays under limits |
+| `[x]` | Color invariants | OKLCH bounds, CSS roundtrip |
+| `[x]` | Typography invariants | Scale ratio, font stack |
+| `[x]` | Spacing invariants | Monotonicity, ratio bounds |
+| `[x]` | Voice security | Injection, emoji, unicode |
+| `[x]` | Coeffect algebra | Tensor laws, purity, reproducibility |
+| `[ ]` | Graded monad laws | Identity, associativity |
+| `[ ]` | Agent budget | Conservation proofs |
 
 ---
 
 ## PHASE 3: LEAN4 PROOFS
 
-### 3.1 External Dependencies
+### 3.1 Module Status
 
-| Status | Dependency | Repository | Purpose |
-|--------|------------|------------|---------|
-| `[!]` | Hydrogen | github.com/straylight-software/hydrogen | Core brand proofs |
-| `[!]` | Continuity | github.com/straylight-software/straylight | Coeffect algebra |
+| Module | Status | Lines | Notes |
+|--------|--------|-------|-------|
+| `Foundry.Pipeline` | `[x]` | 320 | Graded monads, coeffects |
+| `Foundry.Sigil.Sigil` | `[x]` | 800+ | 18 theorems, 0 sorry |
+| `Foundry.Cornell.Proofs` | `[x]` | 850+ | Box codecs, roundtrip proofs |
+| `Foundry.Cornell.*` | `[x]` | ~700KB | Wire formats (Nix, Git, ZMTP, HTTP/2/3, Protobuf) |
+| `Foundry.Continuity` | `[x]` | 5.5k | Coeffect algebra |
+| `Foundry.Brand` | `[!]` | 36 | Blocked - needs Hydrogen |
 
-### 3.2 Axiom Justification
+### 3.2 Axioms in Use
 
-| Status | File | Line | Axiom | Justification Required |
-|--------|------|------|-------|------------------------|
-| `[ ]` | `lean/Foundry/Pipeline.lean` | 39 | `Hash` opaque type | Document content-addressing guarantee |
-| `[ ]` | `lean/Foundry/Pipeline.lean` | 57 | `Coeffect.instDecidableEq` | Prove or provide computational witness |
+| File | Axiom | Justification |
+|------|-------|---------------|
+| `Cornell/Git.lean` | `zlib_deterministic` | Trust zlib decompressor |
+| `Cornell/Git.lean` | `zlib_consumption_bound` | Bounded consumption |
+| `Cornell/Nix.lean` | `nixString_roundtrip` | ByteArray tedium |
+| `Cornell/Nix.lean` | `parseNStrings_*` | Array size < 2^64 |
 
-### 3.3 Pipeline Proofs
+### 3.3 External Dependencies
 
-| Status | Theorem | Description |
-|--------|---------|-------------|
-| `[ ]` | `pipeline_deterministic` | Same input -> same Brand output |
-| `[ ]` | `extraction_total` | All valid URLs produce valid Brand |
-| `[ ]` | `coeffect_preservation` | Pipeline respects coeffect constraints |
-| `[ ]` | `budget_conservation` | Agent budget decreases monotonically |
-| `[ ]` | `permission_monotonic` | Permissions can only decrease |
-
-### 3.4 Brand Invariant Proofs
-
-| Status | Theorem | Description |
-|--------|---------|-------------|
-| `[ ]` | `palette_nonempty` | Brand always has at least one color |
-| `[ ]` | `color_valid_oklch` | All colors in valid OKLCH range |
-| `[ ]` | `typography_scale_ordered` | Font sizes monotonically increase |
-| `[ ]` | `spacing_scale_positive` | All spacing values > 0 |
-| `[ ]` | `provenance_immutable` | Provenance hash never changes |
+| Status | Dependency | Purpose |
+|--------|------------|---------|
+| `[!]` | Hydrogen | Brand schema proofs |
 
 ---
 
@@ -309,206 +213,240 @@ Test files:
 
 ### 4.1 Build System
 
-| Status | Task | Description |
-|--------|------|-------------|
-| `[x]` | `flake.nix` | Nix flake with all dependencies |
-| `[x]` | `flake.lock` | Locked dependencies |
-| `[~]` | sensenet integration | Buck2 build system (module API mismatch) |
-| `[ ]` | CI pipeline | GitHub Actions for test/build/deploy |
-| `[ ]` | Cachix | Binary cache for fast builds |
+| Status | Task | Notes |
+|--------|------|-------|
+| `[x]` | `flake.nix` | Full dev environment |
+| `[x]` | `cabal.project` | 3/4 packages enabled |
+| `[x]` | `lakefile.lean` | Foundry lib target |
+| `[x]` | `spago.yaml` | PureScript config |
+| `[~]` | Buck2 | Available but not primary |
 
 ### 4.2 Development Environment
 
-| Status | Task | Description |
-|--------|------|-------------|
-| `[x]` | `nix develop` | Working dev shell |
-| `[x]` | ZeroMQ | libzmq available in devShell |
-| `[x]` | Playwright | Browser automation configured |
-| `[x]` | DuckDB | Database bindings available |
-| `[x]` | PostgreSQL | Database bindings available |
-| `[ ]` | foundry-scraper | Enable in cabal.project |
+| Status | Tool | Version |
+|--------|------|---------|
+| `[x]` | GHC | 9.12.2 |
+| `[x]` | PureScript | 0.15.15 |
+| `[x]` | Spago | 1.0.3 |
+| `[x]` | Lean4 | 4.15.0 (via elan) |
+| `[x]` | Buck2 | 2025-12-01 |
+| `[x]` | Dhall | 1.42.3 |
+| `[x]` | ZeroMQ | Available in devShell |
+| `[x]` | Playwright | Configured |
+| `[x]` | DuckDB | Bindings available |
+| `[x]` | PostgreSQL | Bindings available |
 
-### 4.3 Sandboxing
+### 4.3 Pending Infrastructure
 
-| Status | Task | Description |
-|--------|------|-------------|
-| `[ ]` | `bubblewrap.sh` | Lightweight sandbox wrapper |
-| `[ ]` | `gvisor.nix` | gVisor runsc configuration |
-| `[ ]` | Playwright sandbox | Browser isolation policy |
-| `[ ]` | Network policy | Whitelist allowed domains |
-
-### 4.4 Observability
-
-| Status | Task | Description |
-|--------|------|-------------|
-| `[ ]` | Structured logging | JSON logs with trace IDs |
-| `[ ]` | Metrics | Prometheus-compatible metrics |
-| `[ ]` | Tracing | OpenTelemetry spans |
-| `[ ]` | Health checks | Liveness/readiness probes |
+| Status | Task | Notes |
+|--------|------|-------|
+| `[ ]` | Enable foundry-scraper | Uncomment in cabal.project |
+| `[ ]` | CI pipeline | GitHub Actions |
+| `[ ]` | Cachix | Binary cache |
 
 ---
 
-## PHASE 5: DOCUMENTATION
+## PHASE 5: NEW COMPONENTS (Not in Original TODO)
 
-### 5.1 Architecture Documentation
+### 5.1 Evring - io_uring WAI Server
 
-| Status | Document | Description |
-|--------|----------|-------------|
-| `[x]` | `CLAUDE.md` | AI assistant instructions |
-| `[ ]` | `ARCHITECTURE.md` | System architecture overview |
-| `[ ]` | `SMART_BRAND_FRAMEWORK.md` | Brand schema documentation |
-| `[ ]` | `COEFFECT_ALGEBRA.md` | Graded monad documentation |
-| `[ ]` | `SECURITY_MODEL.md` | Sandbox and permission model |
+High-performance HTTP server using Linux io_uring:
 
-### 5.2 API Documentation
+| Module | Lines | Status |
+|--------|-------|--------|
+| `Evring/Wai.hs` | 977 | `[~]` Core server |
+| `Evring/Event.hs` | 590 | `[~]` Event types |
+| `Evring/Conn.hs` | 498 | `[~]` Connection handling |
+| `Evring/Loop.hs` | ~400 | `[~]` Event loop |
+| `Evring/Ring.hs` | ~200 | `[~]` io_uring wrapper |
+| `Evring/Zmtp.hs` | 545 | `[~]` ZeroMQ protocol |
+| `Evring/Sigil.hs` | 529 | `[~]` Sigil protocol |
+| `Evring/Trace.hs` | ~100 | `[~]` Tracing |
 
-| Status | Package | Description |
-|--------|---------|-------------|
-| `[ ]` | foundry-core | Haddock with examples |
-| `[ ]` | foundry-extract | Haddock with examples |
-| `[ ]` | foundry-storage | Haddock with examples |
-| `[ ]` | foundry-scraper | Haddock with examples |
-| `[ ]` | PureScript | Pursuit-style docs |
+### 5.2 Sigil - Binary Protocol
 
-### 5.3 Module Annotations
+Verified binary protocol with Lean4 proofs:
 
-Each module should have:
-- Feature purpose and rationale
-- Function contracts and behavior
-- Dependencies (what this module requires)
-- Dependents (what requires this module)
+| Component | Location | Status |
+|-----------|----------|--------|
+| Lean4 proofs | `lean/Foundry/Sigil/Sigil.lean` | `[x]` 18 theorems |
+| Haskell impl | `haskell/foundry-core/src/Foundry/Core/Sigil/Sigil.hs` | `[~]` |
+| C++ header | `cpp/evring/sigil.h` | `[x]` |
 
-| Status | Package | Modules Annotated |
-|--------|---------|-------------------|
-| `[ ]` | foundry-core | 0/27 |
-| `[ ]` | foundry-extract | 0/14 |
-| `[ ]` | foundry-storage | 0/5 |
-| `[ ]` | foundry-scraper | 0/4 |
+### 5.3 Cornell - Verified Wire Formats
+
+Massive library of verified binary codecs:
+
+| Format | File | Lines | Status |
+|--------|------|-------|--------|
+| Core proofs | `Proofs.lean` | 850 | `[x]` |
+| Nix protocol | `Nix.lean` | 1500+ | `[x]` |
+| Git pack | `Git.lean` | 550+ | `[x]` |
+| ZMTP | `Zmtp.lean` | 590+ | `[x]` |
+| HTTP/2 | `Http2.lean` | 450+ | `[x]` |
+| HTTP/3 | `Http3.lean` | 450+ | `[x]` |
+| Protobuf | `Protobuf.lean` | 800+ | `[x]` |
+| Sigil | `Sigil.lean` | 800+ | `[x]` |
+| State machines | `StateMachine.lean` | 850+ | `[x]` |
+| Extractors | `Extract*.lean` | 5000+ | `[x]` |
 
 ---
 
-## PHASE 6: SECURITY
+## PHASE 6: DOCUMENTATION
 
-### 6.1 Input Validation
-
-| Status | Module | Validation |
-|--------|--------|------------|
-| `[x]` | Color/CSS.hs | RGB input sanitization |
-| `[x]` | Typography/Scale.hs | Exponent bounds |
-| `[x]` | Spacing.hs | Ratio clamping |
-| `[ ]` | Voice.hs | XSS/injection prevention |
-| `[ ]` | Scraper/Protocol.hs | URL validation |
-
-### 6.2 Resource Limits
-
-| Status | Resource | Limit |
+| Status | Document | Notes |
 |--------|----------|-------|
-| `[ ]` | Memory | Max brand size |
-| `[ ]` | Time | Extraction timeout |
-| `[ ]` | Network | Rate limiting |
-| `[ ]` | Storage | Quota per brand |
-
-### 6.3 Cryptographic Security
-
-| Status | Feature | Implementation |
-|--------|---------|----------------|
-| `[ ]` | SHA256 | Real implementation (not mock) |
-| `[ ]` | UUID5 | Deterministic namespaced UUIDs |
-| `[ ]` | Signatures | Brand provenance signing |
+| `[x]` | `CLAUDE.md` | Comprehensive AI instructions |
+| `[x]` | `docs/SMART_BRAND_FRAMEWORK.md` | 640 lines, complete |
+| `[x]` | `docs/BRAND_SCHEMA.md` | Schema documentation |
+| `[x]` | `docs/SIGIL_PROTOCOL.md` | Protocol specification |
+| `[ ]` | `ARCHITECTURE.md` | System overview |
+| `[ ]` | Haddock | API documentation |
 
 ---
 
-## PHASE 7: PERFORMANCE
+## PHASE 7: INTEGRATION
 
-### 7.1 Benchmarks
+### 7.1 PureScript ↔ Haskell Alignment
 
-| Status | Benchmark | Target |
-|--------|-----------|--------|
-| `[x]` | HAMT insert | < 1ms |
-| `[x]` | HAMT lookup | < 100us |
-| `[ ]` | Brand serialization | < 10ms |
-| `[ ]` | Color clustering | < 50ms |
-| `[ ]` | Full extraction | < 5s |
+| Status | PureScript Module | Haskell Equivalent |
+|--------|-------------------|-------------------|
+| `[x]` | `Brand/Identity.purs` | `Brand/Identity.hs` |
+| `[x]` | `Brand/Palette.purs` | `Brand/Palette.hs` |
+| `[x]` | `Brand/Typography.purs` | `Brand/Typography.hs` |
+| `[x]` | `Brand/Spacing.purs` | `Brand/Spacing.hs` |
+| `[x]` | `Brand/Voice.purs` | `Brand/Voice.hs` |
+| `[x]` | `Brand/Strategy.purs` | `Brand/Strategy.hs` |
+| `[x]` | `Brand/Editorial.purs` | `Brand/Editorial.hs` |
+| `[x]` | `Brand/Logo.purs` | `Brand/Logo.hs` |
+| `[ ]` | `Brand/Layout.purs` | Not yet |
+| `[ ]` | `Brand/Modes.purs` | Not yet |
+| `[ ]` | `Brand/UIElements.purs` | Not yet |
+| `[ ]` | `Brand/GraphicElements.purs` | Not yet |
+| `[ ]` | `Brand/Imagery.purs` | Not yet |
 
-### 7.2 Optimization
+### 7.2 Scraper Integration
 
-| Status | Optimization | Description |
-|--------|--------------|-------------|
-| `[ ]` | Lazy evaluation audit | Ensure no space leaks |
-| `[ ]` | Strict fields | Bang patterns on hot paths |
-| `[ ]` | Unboxing | Unbox numeric types |
-| `[ ]` | Fusion | Vector/Text fusion |
-
----
-
-## PHASE 8: DEPLOYMENT
-
-### 8.1 Packaging
-
-| Status | Format | Description |
-|--------|--------|-------------|
-| `[ ]` | Nix package | `nix build .#foundry` |
-| `[ ]` | Docker image | OCI-compliant container |
-| `[ ]` | Static binary | Fully static Haskell binary |
-
-### 8.2 Configuration
-
-| Status | Task | Description |
-|--------|------|-------------|
-| `[ ]` | Dhall config | Typed configuration schema |
-| `[ ]` | Environment vars | 12-factor app compliance |
-| `[ ]` | Secrets management | Vault/SOPS integration |
-
-### 8.3 Monitoring
-
-| Status | Task | Description |
-|--------|------|-------------|
-| `[ ]` | Grafana dashboards | Pre-built monitoring dashboards |
-| `[ ]` | Alerting rules | Prometheus alertmanager rules |
-| `[ ]` | Runbooks | Operational procedures |
+| Status | Component | Notes |
+|--------|-----------|-------|
+| `[x]` | TypeScript scraper | 1057 lines, Playwright |
+| `[~]` | Haskell client | foundry-scraper (disabled) |
+| `[ ]` | ZMQ bridge | Blocked on libzmq |
 
 ---
 
 ## SUMMARY
 
-### Counts by Phase
+### Completion by Phase
 
-| Phase | Total | Complete | In Progress | Blocked |
-|-------|-------|----------|-------------|---------|
-| 0. Critical Fixes | 7 | 0 | 0 | 0 |
-| 1. Code Quality | ~400 | 0 | 0 | 0 |
-| 2. Test Coverage | ~80 | 10 | 0 | 2 |
-| 3. Lean4 Proofs | 15 | 0 | 0 | 2 |
-| 4. Infrastructure | 18 | 6 | 1 | 0 |
-| 5. Documentation | 12 | 1 | 0 | 0 |
-| 6. Security | 12 | 3 | 0 | 0 |
-| 7. Performance | 10 | 2 | 0 | 0 |
-| 8. Deployment | 9 | 0 | 0 | 0 |
+| Phase | Status | Notes |
+|-------|--------|-------|
+| 0. Critical Fixes | `[~]` | 2 forbidden patterns remain |
+| 1. Code Quality | `[ ]` | 519 wildcard imports, 6 oversized files |
+| 2. Test Coverage | `[x]` | 218 tests passing |
+| 3. Lean4 Proofs | `[~]` | Cornell complete, Brand blocked |
+| 4. Infrastructure | `[x]` | Dev environment complete |
+| 5. New Components | `[~]` | Evring/Sigil in progress |
+| 6. Documentation | `[~]` | Core docs exist |
+| 7. Integration | `[~]` | PS↔HS partial |
 
-### Priority Order
+### Priority Order (UPDATED 2026-02-26 — COMPASS Integration)
 
-1. **PHASE 0**: Remove `undefined`, complete stubs - BLOCKS EVERYTHING
-2. **PHASE 1.1**: Explicit imports - Code quality foundation
-3. **PHASE 2**: Test coverage - Confidence for refactoring
-4. **PHASE 4.2**: Enable foundry-scraper - Unblock integration tests
-5. **PHASE 3**: Lean4 proofs - Mathematical guarantees
-6. **PHASE 5**: Documentation - Maintainability
-7. **PHASE 6-8**: Security, Performance, Deployment - Production readiness
+**PHASE 0: FOUNDATION REPAIR (2 weeks)**
+
+| Priority | Task | Effort |
+|----------|------|--------|
+| P0 | Enable foundry-scraper in cabal.project | 1 hour |
+| P0 | Connect Playwright → ZMQ → Haskell | 2 days |
+| P0 | Create `CompleteBrand` unified type (18+ fields) | 2 days |
+| P0 | Port missing atoms from HYDROGEN (Layout, UIElements, Modes, Imagery, Graphics) | 3 days |
+| P0 | Create `BrandOntology` (term aliases, SKU patterns) | 1 day |
+| P1 | Create `BrandHierarchy` (sub-brand inheritance) | 1 day |
+| P0 | Create `AgentBrandContext` for MAESTRO | 1 day |
+| P0 | Aeson instances with JSON roundtrip tests | 2 days |
+
+**PHASE 1: PROOF COMPLETION (2 weeks)**
+
+| Priority | Task | Effort |
+|----------|------|--------|
+| P0 | Fix Typography.lean:212 (scale monotonicity SORRY) | 1 day |
+| P0 | Fix Voice.lean:166 (eraseDups length SORRY) | 1 day |
+| P0 | Fix Cornell ByteArray API for Lean4 4.15.0 | 2 days |
+| P0 | Create Brand.lean (compound composition proofs) | 3 days |
+| P1 | Prove WCAG accessibility guarantee | 2 days |
+| P1 | Prove serialization roundtrip | 2 days |
+| P0 | Property tests matching Lean4 theorems | 2 days |
+
+**PHASE 2: EXTRACTION COMPLETENESS (3 weeks)**
+
+| Priority | Task | Effort |
+|----------|------|--------|
+| P0 | Logo extraction (variants, lockups, clear space, sizing) | 3 days |
+| P0 | Voice extraction (LLM-assisted IS/NOT mining) | 4 days |
+| P1 | Layout extraction (grid system detection) | 2 days |
+| P1 | UI element extraction (button/input/card specs) | 2 days |
+| P1 | Mode detection (light/dark stylesheets) | 2 days |
+| P2 | Imagery style extraction (color grading params) | 2 days |
+| P2 | Pattern/texture detection | 1 day |
+
+**PHASE 3: COMPASS INTEGRATION (2 weeks)**
+
+| Priority | Task | Effort |
+|----------|------|--------|
+| P0 | Create COMPASS export module (CompleteBrand → NDJSON) | 3 days |
+| P0 | BE:/NEVER BE: prompt generation from IS/NOT | 1 day |
+| P0 | ZMQ PUSH to COMPASS | 2 days |
+| P0 | Entity type additions to COMPASS knowledge graph | 1 day |
+| P1 | Cache invalidation events | 2 days |
+
+**PHASE 4: SWARM SCALE (3 weeks)**
+
+| Priority | Task | Effort |
+|----------|------|--------|
+| P0 | Worker pool (ZMQ DEALER/ROUTER) | 3 days |
+| P0 | Domain coordination (Redis locks) | 2 days |
+| P0 | Rate limiting (per-domain, robots.txt) | 2 days |
+| P0 | Backpressure (bounded queues, circuit breakers) | 2 days |
+| P0 | Horizontal scraper scaling (Nix flake) | 3 days |
+| P1 | gVisor sandboxing at scale | 2 days |
+| P1 | DuckDB staging → PostgreSQL batch commit | 2 days |
+
+**PHASE 5: OBSERVABILITY + HARDENING (2 weeks)**
+
+| Priority | Task | Effort |
+|----------|------|--------|
+| P0 | Prometheus metrics | 2 days |
+| P0 | Security audit (sandbox escape, injection) | 3 days |
+| P0 | Load testing (10x expected peak) | 2 days |
+| P1 | Jaeger distributed tracing | 2 days |
+| P1 | Alerting (PagerDuty/Slack) | 1 day |
+| P1 | Grafana dashboard | 1 day |
+| P1 | Chaos testing (node failure, network partition) | 2 days |
+
+**TOTAL: 14 weeks (3.5 months) to production-ready swarm scale**
 
 ---
 
-## CURRENT TEST STATUS
+## BUILD COMMANDS
 
-```
-foundry-core:    127 tests passing
-foundry-extract:  48 tests passing
-foundry-storage:  22 tests passing
-foundry-scraper:   0 tests (blocked)
-────────────────────────────────────
-TOTAL:           197 tests passing
+```bash
+# Enter dev environment
+nix develop
+
+# Build Haskell
+cd haskell && cabal build all
+
+# Run Haskell tests
+cd haskell && cabal test all
+
+# Build Lean4 (partial - Cornell only)
+cd lean && lake build Foundry.Cornell.Proofs
+
+# Build PureScript (requires network for registry)
+spago build
 ```
 
 ---
 
 *Last updated: 2026-02-26*
-*Target: System F Omega | Production Grade*
+*Verified by full build + test run*

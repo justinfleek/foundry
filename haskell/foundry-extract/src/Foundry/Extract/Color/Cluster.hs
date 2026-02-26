@@ -160,11 +160,11 @@ computeCentroids oldCentroids assignments colors freqs =
   where
     computeOne clusterIdx =
       let indices = V.findIndices (== clusterIdx) assignments
-          clusterColors = V.map (V.unsafeIndex colors) indices
-          clusterFreqs = V.map (V.unsafeIndex freqs) indices
-      in if V.null clusterColors
+          memberColors = V.map (V.unsafeIndex colors) indices
+          memberFreqs = V.map (V.unsafeIndex freqs) indices
+      in if V.null memberColors
          then V.unsafeIndex oldCentroids clusterIdx  -- Keep old if empty
-         else weightedCentroid clusterColors clusterFreqs
+         else weightedCentroid memberColors memberFreqs
 
 -- | Compute weighted centroid of colors
 weightedCentroid :: Vector OKLCH' -> Vector Int -> OKLCH'

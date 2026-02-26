@@ -148,8 +148,9 @@ prop_bulkInsert = property $ do
 prop_bulkInsertSize :: Property
 prop_bulkInsertSize = property $ do
   contents <- forAll genContents
-  let insertAll cs h = foldr (\c (_, h') -> HAMT.insert c h') (undefined, h) cs
-      (_, hamt) = insertAll contents HAMT.empty
+  -- Only the final HAMT matters, not the keys - use snd to discard keys
+  let insertAll cs h = foldl (\h' c -> snd (HAMT.insert c h')) h cs
+      hamt = insertAll contents HAMT.empty
       -- Count unique contents (content-addressed means duplicates merge)
       uniqueCount = length (foldr (\c acc -> if c `elem` acc then acc else c : acc) [] contents)
   HAMT.size hamt === uniqueCount

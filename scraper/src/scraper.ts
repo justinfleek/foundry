@@ -15,7 +15,7 @@
  * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  */
 
-import { chromium, Browser, Page, BrowserContext } from "playwright";
+import { chromium, type Browser, Page, type BrowserContext } from "playwright";
 import type {
   ScrapeResult,
   ScrapeOptions,
@@ -24,15 +24,29 @@ import type {
   CSSProperty,
   CSSValue,
   ElementStyles,
-  ComputedStyle,
   TextContent,
   TextBlock,
   TextBlockType,
   FontData,
-  FontFace,
   AssetData,
   AssetType,
 } from "./types.js";
+
+// ============================================================================
+// Exported Type Re-exports (for consumers of this module)
+// ============================================================================
+
+/**
+ * Re-export types that consumers may need for browser automation.
+ * These are used in integration tests and higher-level orchestration.
+ */
+export type { Browser, BrowserContext };
+
+/**
+ * Re-export CSS types for external CSS analysis modules.
+ * ComputedStyle and FontFace are used by foundry-extract's color/font analyzers.
+ */
+export type { ComputedStyle, FontFace } from "./types.js";
 
 // ============================================================================
 // Main Scraper
@@ -42,8 +56,12 @@ export async function scrapeURL(
   url: string,
   options: ScrapeOptions
 ): Promise<ScrapeResult> {
+  // Allow override via environment variable for Nix-provided Chromium
+  const executablePath = process.env["PLAYWRIGHT_CHROMIUM_PATH"] ?? process.env["CHROMIUM_PATH"];
+  
   const browser = await chromium.launch({
     headless: true,
+    ...(executablePath !== undefined ? { executablePath } : {}),
   });
 
   try {
@@ -54,6 +72,9 @@ export async function scrapeURL(
     });
 
     const page = await context.newPage();
+
+    // Inject helper functions into page context before navigation
+    await injectHelpers(page);
 
     // Navigate with timeout
     await page.goto(url, {

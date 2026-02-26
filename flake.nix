@@ -1,9 +1,9 @@
 {
   # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  #                                                                // metxt // nix
+  #                                                              // foundry // nix
   # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   #
-  # METXT - SMART Brand Ingestion Engine
+  # FOUNDRY - SMART Brand Ingestion Engine
   #
   # ARCHITECTURE:
   #   Lean4   - CIC proofs, invariants defined FIRST (Hydrogen.Schema.Brand.*)
@@ -30,7 +30,7 @@
   #
   # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  description = "METXT - SMART Brand Ingestion Engine (Lean4/Haskell/PureScript)";
+  description = "FOUNDRY - SMART Brand Ingestion Engine (Lean4/Haskell/PureScript)";
 
   nixConfig = {
     extra-substituters = [
@@ -123,7 +123,7 @@
             ghc912.QuickCheck
           ];
 
-          # Haskell library dependencies for metxt packages
+          # Haskell library dependencies for foundry packages
           haskellLibDeps = hp: [
             hp.aeson
             hp.attoparsec
@@ -184,6 +184,7 @@
           infrastructureDeps = [
             # Message passing (ZMTP 3.x)
             pkgs.zeromq
+            pkgs.libsodium # Required by zeromq for crypto
 
             # Browser automation (sandboxed)
             pkgs.playwright-driver
@@ -234,7 +235,7 @@
           #
 
           devShells.default = pkgs.mkShell {
-            name = "metxt-dev";
+            name = "foundry-dev";
 
             packages = haskellDevDeps ++ purescriptDeps ++ lean4Deps ++ infrastructureDeps ++ [ pkgs.buck2 ];
 
@@ -242,6 +243,7 @@
 
             PKG_CONFIG_PATH = pkgs.lib.makeSearchPath "lib/pkgconfig" [
               pkgs.zeromq
+              pkgs.libsodium
               pkgs.postgresql
               pkgs.duckdb
             ];
@@ -249,7 +251,7 @@
             shellHook = ''
               echo ""
               echo "  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-              echo "                                                      // metxt // dev"
+              echo "                                                    // foundry // dev"
               echo "  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
               echo ""
               echo "  GHC:        $(ghc --version | head -1)"
@@ -276,10 +278,10 @@
             default = pkgs.hello; # Placeholder
 
             # Haskell packages built via Cabal/sensenet
-            # metxt-core = ...
-            # metxt-extract = ...
-            # metxt-scraper = ...
-            # metxt-storage = ...
+            # foundry-core = ...
+            # foundry-extract = ...
+            # foundry-scraper = ...
+            # foundry-storage = ...
           };
         };
     };

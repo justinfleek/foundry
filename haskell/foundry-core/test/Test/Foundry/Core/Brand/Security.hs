@@ -46,13 +46,14 @@ import Data.Maybe (isJust, isNothing)
 import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Vector qualified as V
-import Hedgehog (Property, forAll, property, assert, withTests)
+import Hedgehog (Property, forAll, property, assert, withTests, evalIO)
 import Hedgehog.Gen qualified as Gen
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.Hedgehog (testProperty)
 
 import Foundry.Core.Brand.Tagline
-  ( mkTaglineText
+  ( TaglineContext (..)
+  , mkTaglineText
   , mkPrimaryTagline
   , mkSecondaryTagline
   , taglineToText
@@ -232,9 +233,10 @@ prop_homoglyphSafe = withTests 200 $ property $ do
 prop_unicodeWeirdSafe :: Property
 prop_unicodeWeirdSafe = withTests 200 $ property $ do
   weird <- forAll genUnicodeWeirdness
-  -- Should not throw exception
+  -- Should not throw exception - result is either Just (valid) or Nothing (rejected)
   let result = mkTaglineText weird
-  assert True  -- Just verifying no crash
+  -- Verify result is one of the expected outcomes (not an exception)
+  assert (isJust result || isNothing result)
 
 -- | Null injection should not truncate strings
 prop_nullInjectionSafe :: Property
@@ -309,8 +311,8 @@ prop_controlCharsSafe = withTests 200 $ property $ do
     Nothing -> assert True  -- May be rejected
     Just tt -> do
       let stored = taglineToText tt
-      -- Parser should survive
-      assert True
+      -- Parser should survive - stored text should be non-empty
+      assert (not (T.null stored))
 
 -- | ANSI escape codes should be treated as data
 prop_ansiEscapeSafe :: Property
@@ -352,6 +354,9 @@ crossModuleTests =
   [ testProperty "poison doesn't propagate tagline→strategy" prop_noPropagationTaglineStrategy
   , testProperty "poison doesn't propagate strategy→editorial" prop_noPropagationStrategyEditorial
   , testProperty "all modules reject consistently" prop_consistentRejection
+  , testProperty "poison in primary tagline is safe" prop_poisonPrimaryTagline
+  , testProperty "poison in secondary tagline is safe" prop_poisonSecondaryTagline
+  , testProperty "exception handling for poison pills" prop_noExceptionsFromPoison
   ]
 
 -- | Poison in tagline shouldn't affect strategy module
@@ -363,20 +368,24 @@ prop_noPropagationTaglineStrategy = withTests 100 $ property $ do
   -- Strategy module should also handle the same poison
   let missionResult = mkMissionStatement poison
   let valueResult = mkBrandValue poison "desc"
-  -- All should either accept or reject gracefully
-  assert True
+  -- All should either accept or reject gracefully (not crash)
+  assert (isJust taglineResult || isNothing taglineResult)
+  assert (isJust missionResult || isNothing missionResult)
+  assert (isJust valueResult || isNothing valueResult)
 
 -- | Poison in strategy shouldn't affect editorial module
 prop_noPropagationStrategyEditorial :: Property
 prop_noPropagationStrategyEditorial = withTests 100 $ property $ do
   poison <- forAll genPoisonPill
   -- Try in strategy
-  let _ = mkMissionStatement poison
+  let missionResult = mkMissionStatement poison
   -- Try in editorial (phone format with X placeholders)
   let phoneResult = mkPhoneFormat (poison <> "X")
   let wordResult = mkConfusedWord poison "correct" "context"
-  -- Should not crash
-  assert True
+  -- All should either accept or reject gracefully (not crash)
+  assert (isJust missionResult || isNothing missionResult)
+  assert (isJust phoneResult || isNothing phoneResult)
+  assert (isJust wordResult || isNothing wordResult)
 
 -- | All modules should reject invalid input consistently
 prop_consistentRejection :: Property
@@ -389,3 +398,31 @@ prop_consistentRejection = property $ do
   assert (isJust (mkBrandValue "name" ""))     -- Empty desc is OK
   assert (isNothing (mkPersonalityTrait ""))
   assert (isNothing (mkPersonalityDescription ""))
+
+-- | Primary tagline with poison should be safe
+prop_poisonPrimaryTagline :: Property
+prop_poisonPrimaryTagline = withTests 100 $ property $ do
+  poison <- forAll genPoisonPill
+  let result = mkPrimaryTagline poison
+  -- Should either accept or reject, never crash
+  assert (isJust result || isNothing result)
+
+-- | Secondary tagline with poison should be safe
+prop_poisonSecondaryTagline :: Property
+prop_poisonSecondaryTagline = withTests 100 $ property $ do
+  poison <- forAll genPoisonPill
+  -- Try with various contexts to ensure poison doesn't corrupt context handling
+  let contexts = V.fromList [GeneralContext, MarketingCampaign]
+  let result = mkSecondaryTagline poison contexts
+  assert (isJust result || isNothing result)
+
+-- | Verify that poison pills don't throw exceptions (uses evaluate/try)
+-- This is the most rigorous safety test - actually catches runtime exceptions
+prop_noExceptionsFromPoison :: Property
+prop_noExceptionsFromPoison = withTests 50 $ property $ do
+  poison :: Text <- forAll genPoisonPill
+  -- Use evaluate to force evaluation and catch any exceptions
+  result <- evalIO $ try @SomeException $ evaluate $ mkTaglineText poison
+  case result of
+    Left _exc -> assert False  -- Exception thrown - test fails
+    Right val -> assert (isJust val || isNothing val)

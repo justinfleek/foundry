@@ -28,26 +28,48 @@ module Foundry.Core.Brand.Identity
   , mkBrandId
   , mkDomain
   , mkBrandName
+  
+    -- * Accessors
+  , brandIdToUUID
   ) where
 
+import Data.Aeson (FromJSON (..), ToJSON (..))
 import Data.ByteString qualified as BS
 import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Text.Encoding qualified as TE
 import Data.UUID (UUID)
+import Data.UUID qualified as UUID
 import Data.UUID.V5 qualified as UUID5
+import GHC.Generics (Generic)
 
 -- | Brand identifier - deterministic UUID5
 newtype BrandId = BrandId {unBrandId :: UUID}
-  deriving stock (Eq, Ord, Show)
+  deriving stock (Eq, Ord, Show, Generic)
+
+instance ToJSON BrandId where
+  toJSON (BrandId uuid) = toJSON (UUID.toText uuid)
+
+instance FromJSON BrandId where
+  parseJSON v = do
+    t <- parseJSON v
+    case UUID.fromText t of
+      Just uuid -> pure (BrandId uuid)
+      Nothing -> fail "Invalid UUID format"
+
+-- | Extract UUID from BrandId
+brandIdToUUID :: BrandId -> UUID
+brandIdToUUID = unBrandId
 
 -- | Domain name (valid hostname)
 newtype Domain = Domain {unDomain :: Text}
-  deriving stock (Eq, Ord, Show)
+  deriving stock (Eq, Ord, Show, Generic)
+  deriving newtype (ToJSON, FromJSON)
 
 -- | Brand name (non-empty text)
 newtype BrandName = BrandName {unBrandName :: Text}
-  deriving stock (Eq, Ord, Show)
+  deriving stock (Eq, Ord, Show, Generic)
+  deriving newtype (ToJSON, FromJSON)
 
 -- | UUID5 namespace for brand identifiers
 brandNamespace :: UUID

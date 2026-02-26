@@ -30,13 +30,16 @@ module Foundry.Extract.Color
     extractPalette
   , ColorExtractionResult (..)
 
+    -- * Accessors
+  , extractOKLCH
+
     -- * Re-exports
   , module Foundry.Extract.Color.CSS
   , module Foundry.Extract.Color.Cluster
   , module Foundry.Extract.Color.Role
   ) where
 
-import Data.List (foldl')
+-- Note: foldl' is re-exported from Prelude in GHC 9.12+
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 import Data.Maybe (mapMaybe)
@@ -177,3 +180,8 @@ checkContrastWarnings assignments =
             then [WarnLowColorContrast ratio]
             else []
        _ -> []
+
+-- | Extract OKLCH components from a BrandColor
+-- Provides direct access to the OKLCH type from the palette
+extractOKLCH :: BrandColor -> OKLCH
+extractOKLCH (BrandColor oklch _role) = oklch

@@ -41,6 +41,11 @@ module Foundry.Extract.Color.CSS
   , parseColor
   , parseColorText
 
+    -- * Low-Level Parsers
+    -- | Building blocks for custom color parsing
+  , rgbIntComponent
+  , hexComponent
+
     -- * Conversion
   , rgbToOKLCH
   , hslToOKLCH
@@ -179,6 +184,16 @@ hexCharToDouble c
 
 hexPairToDouble :: Char -> Char -> Double
 hexPairToDouble c1 c2 = hexCharToDouble c1 * 16 + hexCharToDouble c2
+
+-- | Parse an integer RGB component (0-255)
+-- Uses attoparsec's decimal parser for efficiency
+rgbIntComponent :: Parser Double
+rgbIntComponent = fromIntegral <$> (decimal :: Parser Int)
+
+-- | Parse a hex value using attoparsec's hexadecimal parser
+-- Useful for parsing hex color values in alternative formats
+hexComponent :: Parser Int
+hexComponent = hexadecimal
 
 -- | Parse rgb/rgba color
 rgbColorParser :: Parser ParsedColor
