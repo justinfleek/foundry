@@ -57,8 +57,9 @@
     # ══════════════════════════════════════════════════════════════════════════════
 
     sensenet = {
-      url = "github:straylight-software/sensenet";
+      url = "git+ssh://git@github.com/straylight-software/sensenet";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.nix-compile.url = "git+ssh://git@github.com/straylight-software/nix-compile";
     };
 
     # ══════════════════════════════════════════════════════════════════════════════
@@ -66,7 +67,7 @@
     # ══════════════════════════════════════════════════════════════════════════════
 
     hydrogen = {
-      url = "github:straylight-software/hydrogen";
+      url = "github:justinfleek/hydrogen";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -81,17 +82,18 @@
   };
 
   outputs =
-    inputs@{ flake-parts, sensenet, ... }:
+    inputs@{ flake-parts, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {
       systems = import inputs.systems;
 
       # ════════════════════════════════════════════════════════════════════════════
-      # IMPORTS - sensenet modules for Buck2/Dhall/formatting/linting
+      # IMPORTS
       # ════════════════════════════════════════════════════════════════════════════
+      # NOTE: sensenet.flakeModules.default currently has a module interface
+      # mismatch. Using standalone devShell until resolved.
+      # TODO: Re-enable sensenet integration once module API is compatible
 
-      imports = [
-        sensenet.flakeModules.default
-      ];
+      imports = [ ];
 
       # ════════════════════════════════════════════════════════════════════════════
       # PER-SYSTEM CONFIGURATION
@@ -219,50 +221,17 @@
         in
         {
           # ════════════════════════════════════════════════════════════════════════
-          # SENSENET PROJECT - Buck2 build configuration
-          # ════════════════════════════════════════════════════════════════════════
-
-          sensenet.projects.metxt = {
-            src = ./.;
-            targets = [
-              "//haskell/metxt-core:metxt-core"
-              "//haskell/metxt-extract:metxt-extract"
-              "//haskell/metxt-scraper:metxt-scraper"
-              "//haskell/metxt-storage:metxt-storage"
-              "//scraper:scraper"
-            ];
-            toolchain = {
-              cxx.enable = true;
-              haskell = {
-                enable = true;
-                ghcpackages = ghc912;
-                packages = haskellLibDeps;
-              };
-              lean.enable = true;
-              python = {
-                enable = true;
-                package = pkgs.python3.withPackages (ps: [
-                  ps.numpy
-                  ps.playwright
-                ]);
-              };
-              purescript.enable = true;
-            };
-            remoteexecution = {
-              enable = true;
-              scheduler = "sense-scheduler.fly.dev";
-              schedulerport = 443;
-              cas = "sense-cas.fly.dev";
-              casport = 443;
-              tls = true;
-              instancename = "main";
-            };
-            devshellpackages = haskellDevDeps ++ purescriptDeps ++ lean4Deps ++ infrastructureDeps;
-          };
-
-          # ════════════════════════════════════════════════════════════════════════
           # DEVELOPMENT SHELLS
           # ════════════════════════════════════════════════════════════════════════
+          #
+          # NOTE: sensenet Buck2 project config disabled until module API resolved.
+          # Build targets for future reference:
+          #   //haskell/foundry-core:foundry-core
+          #   //haskell/foundry-extract:foundry-extract
+          #   //haskell/foundry-scraper:foundry-scraper
+          #   //haskell/foundry-storage:foundry-storage
+          #   //scraper:scraper
+          #
 
           devShells.default = pkgs.mkShell {
             name = "metxt-dev";

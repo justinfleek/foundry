@@ -89,3 +89,17 @@ test-suite foundry-storage-test
     , tasty-hedgehog  >= 1.4   && < 2
   hs-source-dirs:   test
   default-language: GHC2024
+
+benchmark foundry-storage-bench
+  import:           warnings, extensions
+  type:             exitcode-stdio-1.0
+  main-is:          Main.hs
+  build-depends:
+    , base            >= 4.18  && < 5
+    , bytestring      >= 0.11  && < 1
+    , criterion       >= 1.6   && < 2
+    , deepseq         >= 1.4   && < 2
+    , foundry-storage
+    , random          >= 1.2   && < 2
+  hs-source-dirs:   bench
+  default-language: GHC2024
