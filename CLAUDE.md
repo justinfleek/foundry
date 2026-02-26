@@ -1,8 +1,8 @@
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-                                                                        // METXT
+                                                                        // FOUNDRY
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-# METXT - SMART Brand Ingestion Engine
+# FOUNDRY - SMART Brand Ingestion Engine
 # Lean4 CIC | Haskell Backend | PureScript Hydrogen | Graded Monads
 
 ## ABSOLUTE RULE #0: NEVER DISABLE WARNINGS
@@ -220,9 +220,9 @@ things left to implement. Treat "unused" as "incomplete", not "unnecessary".
 ## PROJECT STRUCTURE
 
 ```
-metxt/
+foundry/
 ├── lean/                    # Lean4 - CIC, proofs, invariants
-│   ├── Metxt/
+│   ├── Foundry/
 │   │   ├── Brand/           # SMART framework schemas
 │   │   │   ├── Identity.lean
 │   │   │   ├── Palette.lean
@@ -237,13 +237,13 @@ metxt/
 │   └── lakefile.lean
 │
 ├── haskell/                 # Haskell - Backend runtime
-│   ├── metxt-core/          # Core types, graded monads
-│   ├── metxt-extract/       # Brand extraction (color, type, spacing)
-│   ├── metxt-scraper/       # Playwright integration, ZMQ
-│   └── metxt-storage/       # HAMT, DuckDB, PostgreSQL adapters
+│   ├── foundry-core/          # Core types, graded monads
+│   ├── foundry-extract/       # Brand extraction (color, type, spacing)
+│   ├── foundry-scraper/       # Playwright integration, ZMQ
+│   └── foundry-storage/       # HAMT, DuckDB, PostgreSQL adapters
 │
 ├── purescript/              # PureScript - Hydrogen frontend
-│   └── metxt-ui/            # Brand ingestion dashboard
+│   └── foundry-ui/            # Brand ingestion dashboard
 │
 ├── src/                     # PureScript Brand schemas (current)
 │   └── Brand/
@@ -283,15 +283,15 @@ wallet:
 cd lean && lake build
 
 # Haskell packages
-nix build .#metxt-core
-nix build .#metxt-extract
-nix build .#metxt-scraper
+nix build .#foundry-core
+nix build .#foundry-extract
+nix build .#foundry-scraper
 
 # PureScript frontend
-cd purescript/metxt-ui && spago build
+cd purescript/foundry-ui && spago build
 
 # Run full pipeline
-nix run .#metxt-ingest -- --url https://example.com
+nix run .#foundry-ingest -- --url https://example.com
 
 # Full test suite
 nix flake check
@@ -311,6 +311,6 @@ nix flake check
 **Priority:** Build Layer 1-2 first. Layer 3-4 only after proven revenue.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-                                                              // metxt // claude
+                                                              // foundry // claude
                                                               // straylight/2026
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

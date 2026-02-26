@@ -1,0 +1,93 @@
+cabal-version:   3.4
+name:            foundry-scraper
+version:         0.1.0.0
+synopsis:        METXT Scraper - ZMQ client for Playwright-based web scraping
+description:
+  ZMQ DEALER client that communicates with a sandboxed Playwright scraper.
+  .
+  Provides:
+  .
+  * ZMQ DEALER socket client with CURVE encryption
+  * Message protocol for ScrapeRequest/ScrapeResult
+  * Connection pooling and timeout handling
+  * JSON serialization of scrape results
+
+license:         BSD-3-Clause
+license-file:    LICENSE
+author:          Straylight Software
+maintainer:      dev@straylight.ai
+copyright:       2026 Straylight Software
+category:        Network
+build-type:      Simple
+
+common warnings
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Widentities
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -Wmissing-export-lists
+    -Wmissing-home-modules
+    -Wpartial-fields
+    -Wredundant-constraints
+    -Wunused-packages
+
+common extensions
+  default-extensions:
+    StrictData
+    DerivingStrategies
+    DerivingVia
+    DeriveGeneric
+    GeneralizedNewtypeDeriving
+    LambdaCase
+    OverloadedStrings
+    TypeApplications
+    ScopedTypeVariables
+    FlexibleContexts
+    FlexibleInstances
+    RecordWildCards
+
+library
+  import:           warnings, extensions
+  exposed-modules:
+    Foundry.Scraper
+    Foundry.Scraper.Client
+    Foundry.Scraper.Protocol
+    Foundry.Scraper.Config
+  build-depends:
+    , aeson           >= 2.0   && < 3
+    , base            >= 4.18  && < 5
+    , bytestring      >= 0.11  && < 1
+    , foundry-extract
+    , stm             >= 2.5   && < 3
+    , text            >= 2.0   && < 3
+    , time            >= 1.12  && < 2
+    , zeromq4-haskell >= 0.8   && < 1
+  hs-source-dirs:   src
+  default-language: GHC2024
+
+executable foundry-scrape
+  import:           warnings, extensions
+  main-is:          Main.hs
+  build-depends:
+    , base            >= 4.18  && < 5
+    , foundry-extract
+    , foundry-scraper
+    , optparse-applicative >= 0.18 && < 1
+    , text            >= 2.0   && < 3
+  hs-source-dirs:   app
+  default-language: GHC2024
+
+test-suite foundry-scraper-test
+  import:           warnings, extensions
+  type:             exitcode-stdio-1.0
+  main-is:          Main.hs
+  build-depends:
+    , base            >= 4.18  && < 5
+    , hedgehog        >= 1.4   && < 2
+    , foundry-scraper
+    , tasty           >= 1.5   && < 2
+    , tasty-hedgehog  >= 1.4   && < 2
+  hs-source-dirs:   test
+  default-language: GHC2024

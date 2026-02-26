@@ -1,19 +1,19 @@
 -- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
---                                                     // metxt // cabal.project
+--                                                     // foundry // cabal.project
 -- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 --
--- Cabal project configuration for metxt Haskell packages
+-- Cabal project configuration for foundry Haskell packages
 --
 -- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 packages:
-  metxt-core/
-  -- metxt-extract/
-  -- metxt-scraper/
-  -- metxt-storage/
+  foundry-core/
+  foundry-extract/
+  foundry-storage/
+  -- foundry-scraper/  -- Requires libzmq (zeromq C library)
 
 -- Use GHC 9.10 for stability
-with-compiler: ghc-9.10
+-- with-compiler: ghc-9.10
 
 -- Optimization
 optimization: 2

@@ -1,26 +1,36 @@
 {
-  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  #                                                              // metxt // nix
-  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  #                                                                // metxt // nix
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   #
-  # SMART Brand Ingestion Engine
+  # METXT - SMART Brand Ingestion Engine
   #
-  # Stack:
-  #   - Lean4 4.26+    :: CIC proofs, invariants defined FIRST
-  #   - Haskell GHC 9.12 :: Backend runtime, graded monads
-  #   - PureScript     :: Schema layer, Hydrogen frontend
-  #   - Buck2          :: Hermetic builds via aleph
+  # ARCHITECTURE:
+  #   Lean4   - CIC proofs, invariants defined FIRST (Hydrogen.Schema.Brand.*)
+  #   Haskell - Backend runtime, graded monads, GHC 9.12 + StrictData
+  #   PureScript - Hydrogen framework frontend
+  #   Buck2   - Hermetic builds via sensenet
+  #   Dhall   - Typed build configuration with coeffect algebra
   #
-  # Dependencies:
-  #   - ZeroMQ         :: Agent communication
-  #   - SearXNG        :: Privacy-respecting web search
-  #   - Playwright     :: Browser automation, skill execution
-  #   - gVisor/Bubblewrap :: Container sandboxing
-  #   - Hedgehog       :: Property-based testing
+  # DEPENDENCIES:
+  #   ZeroMQ     - Agent/scraper communication (ZMTP 3.x)
+  #   SearXNG    - Privacy-respecting discovery
+  #   Playwright - Browser automation (sandboxed)
+  #   gVisor     - Container sandboxing (runsc)
+  #   Bubblewrap - Lightweight sandboxing (bwrap)
+  #   DuckDB     - L2 analytical storage
+  #   PostgreSQL - L3 durable storage
+  #   Hedgehog   - Property-based testing
+  #   QuickCheck - Property-based testing
   #
-  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # BUILD:
+  #   nix develop         - Enter development shell
+  #   buck2 build //...   - Build all targets
+  #   lake build          - Build Lean4 proofs (in lean/)
+  #
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  description = "METXT - SMART Brand Ingestion Engine";
+  description = "METXT - SMART Brand Ingestion Engine (Lean4/Haskell/PureScript)";
 
   nixConfig = {
     extra-substituters = [
@@ -34,75 +44,58 @@
   };
 
   inputs = {
-    # ══════════════════════════════════════════════════════════════════════════
-    # Core Infrastructure
-    # ══════════════════════════════════════════════════════════════════════════
+    # ══════════════════════════════════════════════════════════════════════════════
+    # CORE INFRASTRUCTURE
+    # ══════════════════════════════════════════════════════════════════════════════
 
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    flake-parts.url = "github:hercules-ci/flake-parts";
     systems.url = "github:nix-systems/default";
+    flake-parts.url = "github:hercules-ci/flake-parts";
 
-    # Aleph - Straylight build system (Buck2, LLVM, NVIDIA, Haskell toolchains)
-    aleph.url = "github:straylight-software/aleph";
+    # ══════════════════════════════════════════════════════════════════════════════
+    # SENSENET - Production build system (Buck2, LLVM, Dhall, remote execution)
+    # ══════════════════════════════════════════════════════════════════════════════
 
-    # ══════════════════════════════════════════════════════════════════════════
-    # Language Toolchains
-    # ══════════════════════════════════════════════════════════════════════════
+    sensenet = {
+      url = "github:straylight-software/sensenet";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
 
-    # PureScript overlay (provides spago-unstable, purs, etc.)
-    purescript-overlay.url = "github:thomashoneyman/purescript-overlay";
+    # ══════════════════════════════════════════════════════════════════════════════
+    # HYDROGEN - PureScript framework + Lean4 proofs (Brand schemas)
+    # ══════════════════════════════════════════════════════════════════════════════
 
-    # ══════════════════════════════════════════════════════════════════════════
-    # Buck2 Prelude (Straylight fork with Haskell/Lean rules)
-    # ══════════════════════════════════════════════════════════════════════════
+    hydrogen = {
+      url = "github:straylight-software/hydrogen";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
 
-    buck2-prelude = {
-      url = "github:weyl-ai/straylight-buck2-prelude";
-      flake = false;
+    # ══════════════════════════════════════════════════════════════════════════════
+    # PURESCRIPT OVERLAY
+    # ══════════════════════════════════════════════════════════════════════════════
+
+    purescript-overlay = {
+      url = "github:thomashoneyman/purescript-overlay";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
   outputs =
-    inputs@{ flake-parts, aleph, ... }:
+    inputs@{ flake-parts, sensenet, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {
-      # ════════════════════════════════════════════════════════════════════════
-      # Imports
-      # ════════════════════════════════════════════════════════════════════════
-
-      imports = [
-        aleph.modules.flake.nixpkgs
-        aleph.modules.flake.formatter
-        aleph.modules.flake.build
-      ];
-
       systems = import inputs.systems;
 
-      # ════════════════════════════════════════════════════════════════════════
-      # Aleph Configuration
-      # ════════════════════════════════════════════════════════════════════════
+      # ════════════════════════════════════════════════════════════════════════════
+      # IMPORTS - sensenet modules for Buck2/Dhall/formatting/linting
+      # ════════════════════════════════════════════════════════════════════════════
 
-      # Allow unfree packages (NVIDIA, etc.)
-      aleph.nixpkgs.allow-unfree = true;
-      aleph.nixpkgs.nv.enable = true;
+      imports = [
+        sensenet.flakeModules.default
+      ];
 
-      # Buck2 build configuration
-      aleph.build = {
-        enable = true;
-        generate-buckconfig-main = true;
-
-        toolchain = {
-          cxx.enable = true; # LLVM C++ (required base)
-          haskell.enable = true; # GHC 9.12
-          lean.enable = true; # Lean4
-          rust.enable = false; # Not needed for metxt
-          nv.enable = false; # No CUDA needed for brand ingestion
-          python.enable = true; # For ML interop
-        };
-      };
-
-      # ════════════════════════════════════════════════════════════════════════
-      # Per-System Configuration
-      # ════════════════════════════════════════════════════════════════════════
+      # ════════════════════════════════════════════════════════════════════════════
+      # PER-SYSTEM CONFIGURATION
+      # ════════════════════════════════════════════════════════════════════════════
 
       perSystem =
         {
@@ -112,73 +105,60 @@
           ...
         }:
         let
-          # ────────────────────────────────────────────────────────────────────
-          # PureScript Toolchain
-          # ────────────────────────────────────────────────────────────────────
+          # ──────────────────────────────────────────────────────────────────────────
+          # HASKELL TOOLCHAIN (GHC 9.12)
+          # ──────────────────────────────────────────────────────────────────────────
 
-          # Apply PureScript overlay
+          ghc912 = pkgs.haskell.packages.ghc912;
+
+          haskellDevDeps = [
+            ghc912.ghc
+            pkgs.cabal-install
+            ghc912.haskell-language-server
+            ghc912.hlint
+            ghc912.fourmolu
+            ghc912.hedgehog
+            ghc912.QuickCheck
+          ];
+
+          # Haskell library dependencies for metxt packages
+          haskellLibDeps = hp: [
+            hp.aeson
+            hp.attoparsec
+            hp.base
+            hp.bytestring
+            hp.containers
+            hp.crypton
+            hp.directory
+            hp.duckdb
+            hp.filepath
+            hp.hashable
+            hp.hedgehog
+            hp.megaparsec
+            hp.memory
+            hp.postgresql-simple
+            hp.process
+            hp.scientific
+            hp.stm
+            hp.text
+            hp.time
+            hp.transformers
+            hp.unordered-containers
+            hp.uuid
+            hp.vector
+            hp.zeromq4-haskell
+          ];
+
+          # ──────────────────────────────────────────────────────────────────────────
+          # PURESCRIPT TOOLCHAIN (Hydrogen framework)
+          # ──────────────────────────────────────────────────────────────────────────
+
           psPkgs = import inputs.nixpkgs {
             inherit system;
             overlays = [ inputs.purescript-overlay.overlays.default ];
           };
 
-          # ────────────────────────────────────────────────────────────────────
-          # Haskell Toolchain (GHC 9.12)
-          # ────────────────────────────────────────────────────────────────────
-
-          # Use GHC 9.10 for stability (9.12 may have dep issues)
-          hpkgs = pkgs.haskell.packages.ghc910;
-
-          # Haskell development tools
-          haskellTools = [
-            pkgs.cabal-install
-            hpkgs.haskell-language-server
-            hpkgs.ghcid
-            hpkgs.hlint
-            hpkgs.ormolu
-            hpkgs.fourmolu
-            hpkgs.hedgehog
-          ];
-
-          # ────────────────────────────────────────────────────────────────────
-          # Infrastructure Dependencies
-          # ────────────────────────────────────────────────────────────────────
-
-          infrastructureDeps = [
-            # Message passing / Agent communication
-            pkgs.zeromq
-
-            # Browser automation
-            pkgs.playwright-driver
-            pkgs.chromium
-
-            # Sandboxing
-            pkgs.bubblewrap
-
-            # AST manipulation / Code generation
-            pkgs.tree-sitter
-
-            # Dhall configuration
-            pkgs.dhall
-            pkgs.dhall-json
-            pkgs.dhall-lsp-server
-
-            # Database
-            pkgs.duckdb
-            pkgs.postgresql
-
-            # Utilities
-            pkgs.jq
-            pkgs.yq
-            pkgs.ripgrep
-            pkgs.fd
-          ];
-
-          # ────────────────────────────────────────────────────────────────────
-          # PureScript Dependencies
-          # ────────────────────────────────────────────────────────────────────
-
-          purescriptTools = [
+          purescriptDeps = [
             psPkgs.purs
             psPkgs.spago-unstable
             psPkgs.purs-tidy
@@ -187,39 +167,110 @@
             pkgs.nodejs_22
           ];
 
-          # ────────────────────────────────────────────────────────────────────
-          # Lean4 Dependencies
-          # ────────────────────────────────────────────────────────────────────
+          # ──────────────────────────────────────────────────────────────────────────
+          # LEAN4 TOOLCHAIN
+          # ──────────────────────────────────────────────────────────────────────────
 
-          lean4Tools = [
-            pkgs.elan # Lean toolchain manager (reads lean-toolchain)
+          lean4Deps = [
+            pkgs.elan
+          ];
+
+          # ──────────────────────────────────────────────────────────────────────────
+          # INFRASTRUCTURE DEPENDENCIES
+          # ──────────────────────────────────────────────────────────────────────────
+
+          infrastructureDeps = [
+            # Message passing (ZMTP 3.x)
+            pkgs.zeromq
+
+            # Browser automation (sandboxed)
+            pkgs.playwright-driver
+            pkgs.chromium
+
+            # Sandboxing
+            pkgs.bubblewrap
+            # pkgs.gvisor  # runsc - may need to add manually
+
+            # Discovery
+            # SearXNG runs as a service, not a package dep
+
+            # Database
+            pkgs.duckdb
+            pkgs.postgresql
+
+            # Configuration
+            pkgs.dhall
+            pkgs.dhall-json
+            pkgs.dhall-lsp-server
+
+            # AST manipulation
+            pkgs.tree-sitter
+            pkgs.ast-grep
+
+            # Utilities
+            pkgs.jq
+            pkgs.yq-go
+            pkgs.ripgrep
+            pkgs.fd
+            pkgs.git
+            pkgs.pkg-config
           ];
 
         in
         {
-          # ══════════════════════════════════════════════════════════════════
-          # Development Shell
-          # ══════════════════════════════════════════════════════════════════
+          # ════════════════════════════════════════════════════════════════════════
+          # SENSENET PROJECT - Buck2 build configuration
+          # ════════════════════════════════════════════════════════════════════════
+
+          sensenet.projects.metxt = {
+            src = ./.;
+            targets = [
+              "//haskell/metxt-core:metxt-core"
+              "//haskell/metxt-extract:metxt-extract"
+              "//haskell/metxt-scraper:metxt-scraper"
+              "//haskell/metxt-storage:metxt-storage"
+              "//scraper:scraper"
+            ];
+            toolchain = {
+              cxx.enable = true;
+              haskell = {
+                enable = true;
+                ghcpackages = ghc912;
+                packages = haskellLibDeps;
+              };
+              lean.enable = true;
+              python = {
+                enable = true;
+                package = pkgs.python3.withPackages (ps: [
+                  ps.numpy
+                  ps.playwright
+                ]);
+              };
+              purescript.enable = true;
+            };
+            remoteexecution = {
+              enable = true;
+              scheduler = "sense-scheduler.fly.dev";
+              schedulerport = 443;
+              cas = "sense-cas.fly.dev";
+              casport = 443;
+              tls = true;
+              instancename = "main";
+            };
+            devshellpackages = haskellDevDeps ++ purescriptDeps ++ lean4Deps ++ infrastructureDeps;
+          };
+
+          # ════════════════════════════════════════════════════════════════════════
+          # DEVELOPMENT SHELLS
+          # ════════════════════════════════════════════════════════════════════════
 
           devShells.default = pkgs.mkShell {
             name = "metxt-dev";
 
-            packages =
-              purescriptTools
-              ++ haskellTools
-              ++ lean4Tools
-              ++ infrastructureDeps
-              ++ config.aleph.build.packages # Buck2 toolchain packages
-              ++ [
-                pkgs.buck2
-                pkgs.pkg-config
-                pkgs.git
-              ];
+            packages = haskellDevDeps ++ purescriptDeps ++ lean4Deps ++ infrastructureDeps ++ [ pkgs.buck2 ];
 
-            # Environment variables
             PLAYWRIGHT_BROWSERS_PATH = "${pkgs.playwright-driver.browsers}";
 
-            # pkg-config paths for native dependencies
             PKG_CONFIG_PATH = pkgs.lib.makeSearchPath "lib/pkgconfig" [
               pkgs.zeromq
               pkgs.postgresql
@@ -227,108 +278,39 @@
             ];
 
             shellHook = ''
-              ${config.aleph.build.shellHook}
-
               echo ""
               echo "  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-              echo "                                                    // metxt // dev"
+              echo "                                                      // metxt // dev"
               echo "  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
               echo ""
+              echo "  GHC:        $(ghc --version | head -1)"
               echo "  PureScript: $(purs --version)"
               echo "  Spago:      $(spago --version)"
-              echo "  GHC:        $(ghc --version | head -1)"
               echo "  Lean4:      via elan (see lean-toolchain)"
               echo "  Buck2:      $(buck2 --version 2>/dev/null || echo 'available')"
               echo "  Dhall:      $(dhall version)"
               echo ""
               echo "  Commands:"
-              echo "    spago build     - Build PureScript schemas"
-              echo "    cabal build     - Build Haskell backend"
-              echo "    lake build      - Build Lean4 proofs (in lean/)"
-              echo "    buck2 build     - Build via Buck2"
+              echo "    cabal build all         - Build Haskell packages"
+              echo "    spago build             - Build PureScript schemas"
+              echo "    lake build              - Build Lean4 proofs (in lean/)"
+              echo "    buck2 build //...       - Build all via Buck2"
               echo ""
             '';
           };
 
-          # ══════════════════════════════════════════════════════════════════
-          # Specialized Shells
-          # ══════════════════════════════════════════════════════════════════
-
-          devShells.purescript = pkgs.mkShell {
-            name = "metxt-purescript";
-            packages = purescriptTools ++ [ pkgs.git ];
-
-            shellHook = ''
-              echo "PureScript development shell"
-              echo "  purs: $(purs --version)"
-              echo "  spago: $(spago --version)"
-            '';
-          };
-
-          devShells.haskell = hpkgs.shellFor {
-            packages = p: [ ]; # Add Haskell packages here when created
-            withHoogle = true;
-
-            nativeBuildInputs = haskellTools ++ [
-              pkgs.pkg-config
-              pkgs.zeromq
-            ];
-
-            buildInputs = [
-              pkgs.zeromq
-              pkgs.postgresql
-              pkgs.duckdb
-            ];
-
-            shellHook = ''
-              echo "Haskell development shell (GHC 9.10)"
-              echo "  ghc: $(ghc --version)"
-            '';
-          };
-
-          devShells.lean = pkgs.mkShell {
-            name = "metxt-lean";
-            packages = lean4Tools ++ [ pkgs.git ];
-
-            shellHook = ''
-              echo "Lean4 development shell"
-              echo "  elan: $(elan --version)"
-              echo "  Run 'lake build' in lean/ directory"
-            '';
-          };
-
-          # ══════════════════════════════════════════════════════════════════
-          # Packages
-          # ══════════════════════════════════════════════════════════════════
+          # ════════════════════════════════════════════════════════════════════════
+          # PACKAGES
+          # ════════════════════════════════════════════════════════════════════════
 
           packages = {
-            # Default package (placeholder until we have Haskell packages)
-            default = pkgs.hello;
+            default = pkgs.hello; # Placeholder
 
-            # TODO: Add actual metxt packages here:
+            # Haskell packages built via Cabal/sensenet
             # metxt-core = ...
             # metxt-extract = ...
             # metxt-scraper = ...
-          };
-
-          # ══════════════════════════════════════════════════════════════════
-          # Checks
-          # ══════════════════════════════════════════════════════════════════
-
-          checks = {
-            # Verify PureScript compiles
-            purescript-build =
-              pkgs.runCommand "purescript-build-check"
-                {
-                  nativeBuildInputs = purescriptTools;
-                  src = inputs.self;
-                }
-                ''
-                  cd $src
-                  # spago build would go here once packages.dhall is valid
-                  echo "PureScript check placeholder"
-                  touch $out
-                '';
+            # metxt-storage = ...
           };
         };
     };

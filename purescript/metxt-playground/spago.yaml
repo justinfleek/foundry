@@ -1,0 +1,56 @@
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#                                                      // metxt // playground
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#
+# Brand Playground - Visual Atom/Molecule/Compound Builder
+#
+# A drag-and-drop interface for composing brand schemas from pure data.
+# Every atom is bounded, every molecule validates, every compound is complete.
+#
+# Build: spago build
+# Bundle: spago bundle-app --to dist/playground.js
+# Dev: spago bundle-app --watch
+#
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+package:
+  name: metxt-playground
+  dependencies:
+    # Core
+    - prelude
+    - effect
+    - console
+    - maybe
+    - either
+    - tuples
+    - arrays
+    - foldable-traversable
+    
+    # Data
+    - numbers
+    - integers
+    - strings
+    - newtype
+    - foreign
+    - argonaut-core
+    - argonaut-codecs
+    
+    # UI
+    - web-dom
+    - web-html
+    - web-events
+    - web-uievents
+    
+    # State
+    - refs
+    - st
+    
+    # Local dependency
+    # Note: metxt-brand is in ../../src
+  build:
+    strict: true
+
+workspace:
+  packageSet:
+    registry: 59.2.0
+  extraPackages: {}

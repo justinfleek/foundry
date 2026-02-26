@@ -1,0 +1,110 @@
+cabal-version:   3.4
+name:            foundry-core
+version:         0.1.0.0
+synopsis:        METXT Core - Graded monads and brand types for the ingestion engine
+description:
+  Core types and graded monad infrastructure for the SMART Brand Ingestion Engine.
+  .
+  Provides:
+  .
+  * Graded monad 'Agent' with permission, budget, and context tracking
+  * Brand schema types (Identity, Palette, Typography, etc.)
+  * Co-effect algebra for environment requirements
+  * Linear resource accounting
+
+license:         BSD-3-Clause
+license-file:    LICENSE
+author:          Straylight Software
+maintainer:      dev@straylight.ai
+copyright:       2026 Straylight Software
+category:        Data
+build-type:      Simple
+
+common warnings
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Widentities
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -Wmissing-export-lists
+    -Wmissing-home-modules
+    -Wpartial-fields
+    -Wredundant-constraints
+    -Wunused-packages
+
+common extensions
+  default-extensions:
+    StrictData
+    DerivingStrategies
+    DerivingVia
+    FunctionalDependencies
+    GeneralizedNewtypeDeriving
+    LambdaCase
+    OverloadedStrings
+    TypeApplications
+    TypeFamilies
+    DataKinds
+    GADTs
+    PolyKinds
+    RankNTypes
+    ScopedTypeVariables
+    FlexibleContexts
+    FlexibleInstances
+    MultiParamTypeClasses
+
+library
+  import:           warnings, extensions
+  exposed-modules:
+    Foundry.Core
+    Foundry.Core.Text
+    Foundry.Core.Brand
+    Foundry.Core.Brand.Identity
+    Foundry.Core.Brand.Palette
+    Foundry.Core.Brand.Typography
+    Foundry.Core.Brand.Spacing
+    Foundry.Core.Brand.Voice
+    Foundry.Core.Brand.Strategy
+    Foundry.Core.Brand.Editorial
+    Foundry.Core.Brand.Provenance
+    Foundry.Core.Agent
+    Foundry.Core.Agent.Permission
+    Foundry.Core.Agent.Budget
+    Foundry.Core.Agent.Context
+    Foundry.Core.Effect
+    Foundry.Core.Effect.Graded
+    Foundry.Core.Effect.CoEffect
+  build-depends:
+    , aeson           >= 2.0   && < 3
+    , base            >= 4.18  && < 5
+    , bytestring      >= 0.11  && < 1
+    , containers      >= 0.6   && < 1
+    , crypton         >= 1.0   && < 2
+    , hashable        >= 1.4   && < 2
+    , linear-base     >= 0.4   && < 1
+    , mtl             >= 2.3   && < 3
+    , text            >= 2.0   && < 3
+    , time            >= 1.12  && < 2
+    , transformers    >= 0.6   && < 1
+    , uuid            >= 1.3   && < 2
+    , vector          >= 0.13  && < 1
+  hs-source-dirs:   src
+  default-language: GHC2024
+
+test-suite foundry-core-test
+  import:           warnings, extensions
+  type:             exitcode-stdio-1.0
+  main-is:          Main.hs
+  other-modules:
+    Test.Foundry.Core.Agent
+    Test.Foundry.Core.Brand
+    Test.Foundry.Core.Effect
+  build-depends:
+    , base            >= 4.18  && < 5
+    , containers      >= 0.6   && < 1
+    , hedgehog        >= 1.4   && < 2
+    , foundry-core
+    , tasty           >= 1.5   && < 2
+    , tasty-hedgehog  >= 1.4   && < 2
+  hs-source-dirs:   test
+  default-language: GHC2024

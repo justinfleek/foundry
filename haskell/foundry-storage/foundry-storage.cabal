@@ -1,0 +1,91 @@
+cabal-version:   3.4
+name:            foundry-storage
+version:         0.1.0.0
+synopsis:        METXT Storage - Brand data persistence layer
+description:
+  Storage adapters for the SMART Brand Ingestion Engine.
+  .
+  Provides:
+  .
+  * HAMT - Content-addressed storage for brand data
+  * DuckDB - Analytical queries (L2 storage)
+  * PostgreSQL - Durable persistence (L3 storage)
+  .
+  Architecture:
+  .
+  * L1: HAMT (in-memory, content-addressed, immutable)
+  * L2: DuckDB (analytical, columnar, fast aggregation)
+  * L3: PostgreSQL (durable, transactional, relational)
+
+license:         BSD-3-Clause
+license-file:    LICENSE
+author:          Straylight Software
+maintainer:      dev@straylight.ai
+copyright:       2026 Straylight Software
+category:        Database
+build-type:      Simple
+
+common warnings
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Widentities
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -Wmissing-export-lists
+    -Wmissing-home-modules
+    -Wpartial-fields
+    -Wredundant-constraints
+    -Wunused-packages
+
+common extensions
+  default-extensions:
+    StrictData
+    DerivingStrategies
+    DerivingVia
+    DeriveGeneric
+    GeneralizedNewtypeDeriving
+    LambdaCase
+    OverloadedStrings
+    TypeApplications
+    ScopedTypeVariables
+    FlexibleContexts
+    FlexibleInstances
+    RecordWildCards
+
+library
+  import:           warnings, extensions
+  exposed-modules:
+    Foundry.Storage
+    Foundry.Storage.HAMT
+    Foundry.Storage.DuckDB
+    Foundry.Storage.Postgres
+    Foundry.Storage.Types
+  build-depends:
+    , base            >= 4.18  && < 5
+    , bytestring      >= 0.11  && < 1
+    , containers      >= 0.6   && < 1
+    , crypton         >= 1.0   && < 2
+    , memory          >= 0.18  && < 1
+    , foundry-core
+    , text            >= 2.0   && < 3
+    , time            >= 1.12  && < 2
+    , uuid            >= 1.3   && < 2
+  hs-source-dirs:   src
+  default-language: GHC2024
+
+test-suite foundry-storage-test
+  import:           warnings, extensions
+  type:             exitcode-stdio-1.0
+  main-is:          Main.hs
+  other-modules:
+    Test.Foundry.Storage.HAMT
+  build-depends:
+    , base            >= 4.18  && < 5
+    , bytestring      >= 0.11  && < 1
+    , hedgehog        >= 1.4   && < 2
+    , foundry-storage
+    , tasty           >= 1.5   && < 2
+    , tasty-hedgehog  >= 1.4   && < 2
+  hs-source-dirs:   test
+  default-language: GHC2024

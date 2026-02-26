@@ -1,0 +1,120 @@
+cabal-version:   3.4
+name:            foundry-extract
+version:         0.1.0.0
+synopsis:        METXT Extract - Brand extraction from scraped web content
+description:
+  Extractors for transforming raw scraped content into typed Brand molecules.
+  .
+  Provides:
+  .
+  * Color extractor - CSS parsing, OKLCH clustering, role assignment
+  * Typography extractor - Font family, size, and scale detection
+  * Spacing extractor - Margin/padding analysis, base unit detection
+  * Voice analyzer - NLP-based tone and trait detection
+  * Brand composer - Combines extractors into complete Brand compounds
+
+license:         BSD-3-Clause
+license-file:    LICENSE
+author:          Straylight Software
+maintainer:      dev@straylight.ai
+copyright:       2026 Straylight Software
+category:        Data
+build-type:      Simple
+
+common warnings
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Widentities
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -Wmissing-export-lists
+    -Wmissing-home-modules
+    -Wpartial-fields
+    -Wredundant-constraints
+    -Wunused-packages
+
+common extensions
+  default-extensions:
+    StrictData
+    DeriveGeneric
+    DerivingStrategies
+    DerivingVia
+    GeneralizedNewtypeDeriving
+    LambdaCase
+    OverloadedStrings
+    TypeApplications
+    TypeFamilies
+    DataKinds
+    GADTs
+    PolyKinds
+    RankNTypes
+    ScopedTypeVariables
+    FlexibleContexts
+    FlexibleInstances
+    MultiParamTypeClasses
+
+library
+  import:           warnings, extensions
+  exposed-modules:
+    Foundry.Extract
+    Foundry.Extract.Color
+    Foundry.Extract.Color.CSS
+    Foundry.Extract.Color.Cluster
+    Foundry.Extract.Color.Role
+    Foundry.Extract.Typography
+    Foundry.Extract.Typography.FontFamily
+    Foundry.Extract.Typography.Scale
+    Foundry.Extract.Spacing
+    Foundry.Extract.Voice
+    Foundry.Extract.Voice.NLP
+    Foundry.Extract.Voice.Tone
+    Foundry.Extract.Compose
+    Foundry.Extract.Types
+  build-depends:
+    , aeson           >= 2.0   && < 3
+    , attoparsec      >= 0.14  && < 1
+    , base            >= 4.18  && < 5
+    , base64-bytestring >= 1.2 && < 2
+    , bytestring      >= 0.11  && < 1
+    , containers      >= 0.6   && < 1
+    , crypton         >= 1.0   && < 2
+    , hashable        >= 1.4   && < 2
+    , foundry-core
+    , mtl             >= 2.3   && < 3
+    , scientific      >= 0.3   && < 1
+    , text            >= 2.0   && < 3
+    , time            >= 1.12  && < 2
+    , transformers    >= 0.6   && < 1
+    , unordered-containers >= 0.2 && < 1
+    , uuid            >= 1.3   && < 2
+    , vector          >= 0.13  && < 1
+  hs-source-dirs:   src
+  default-language: GHC2024
+
+test-suite foundry-extract-test
+  import:           warnings, extensions
+  type:             exitcode-stdio-1.0
+  main-is:          Main.hs
+  other-modules:
+    Test.Foundry.Extract.Color
+    Test.Foundry.Extract.Typography
+    Test.Foundry.Extract.Spacing
+    Test.Foundry.Extract.Voice
+    Test.Foundry.Extract.Compose
+    Test.Foundry.Extract.Fixtures.JBreenConsulting
+  build-depends:
+    , base            >= 4.18  && < 5
+    , bytestring      >= 0.11  && < 1
+    , containers      >= 0.6   && < 1
+    , hedgehog        >= 1.4   && < 2
+    , foundry-core
+    , foundry-extract
+    , tasty           >= 1.5   && < 2
+    , tasty-hedgehog  >= 1.4   && < 2
+    , tasty-hunit     >= 0.10  && < 1
+    , text            >= 2.0   && < 3
+    , time            >= 1.12  && < 2
+    , vector          >= 0.13  && < 1
+  hs-source-dirs:   test
+  default-language: GHC2024
