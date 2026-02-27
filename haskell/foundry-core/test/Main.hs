@@ -9,6 +9,7 @@ NORMAN STANSFIELD ENERGY - EVERYONE GETS TESTED.
 module Main (main) where
 
 import Test.Foundry.Core.Agent qualified as Agent
+import Test.Foundry.Core.Agent.Allocation qualified as Allocation
 import Test.Foundry.Core.Brand qualified as Brand
 import Test.Foundry.Core.Brand.Tagline qualified as Tagline
 import Test.Foundry.Core.Brand.Editorial qualified as Editorial
@@ -23,6 +24,7 @@ main =
     testGroup
       "foundry-core"
       [ Agent.tests
+      , Allocation.tests
       , Brand.tests
       , Tagline.tests
       , Editorial.tests

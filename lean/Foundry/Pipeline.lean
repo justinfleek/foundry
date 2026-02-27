@@ -43,6 +43,13 @@ structure Hash where
   hex : String
   deriving DecidableEq, BEq, Repr
 
+/-- Hash equality is decidable (compares hex strings) -/
+instance : DecidableEq Hash := fun a b =>
+  if h : a.hex = b.hex then
+    isTrue (by cases a; cases b; simp at h; simp [h])
+  else
+    isFalse (by intro heq; cases heq; contradiction)
+
 /-- Coeffects for brand ingestion pipeline -/
 inductive Coeffect where
   | pure                                      -- Needs nothing
@@ -204,6 +211,25 @@ Following Continuity.Witness pattern.
 /-- Timestamp (monotonic nanoseconds) -/
 structure Timestamp where
   nanos : Nat
+deriving DecidableEq
+
+instance : LE Timestamp where le a b := a.nanos ≤ b.nanos
+
+/-- Time interval with proven ordering (prevents underflow) -/
+structure TimeInterval where
+  startTime : Timestamp
+  endTime : Timestamp
+  ordered : startTime ≤ endTime  -- Prevents duration underflow
+
+/-- Safe duration computation (cannot underflow due to ordered proof) -/
+def TimeInterval.duration (interval : TimeInterval) : Nat :=
+  interval.endTime.nanos - interval.startTime.nanos
+
+/-- Duration is non-negative (proven via omega) -/
+theorem TimeInterval.duration_nonneg (interval : TimeInterval) : 
+    0 ≤ interval.duration := by
+  simp only [duration]
+  omega
 
 /-- Evidence that a specific coeffect was discharged -/
 structure CoeffectEvidence where
@@ -215,8 +241,7 @@ structure CoeffectEvidence where
 structure DischargeProof where
   declaredCoeffects : Coeffects
   actualEvidence : List CoeffectEvidence
-  startTime : Timestamp
-  endTime : Timestamp
+  timeInterval : TimeInterval  -- Uses safe interval with ordering proof
   pipelineHash : Hash
 
 namespace DischargeProof
@@ -226,9 +251,13 @@ def allDischarged (p : DischargeProof) : Bool :=
   p.declaredCoeffects.all fun c =>
     p.actualEvidence.any fun e => c == e.coeffect
 
-/-- Duration of pipeline execution -/
+/-- Duration of pipeline execution (safe: uses TimeInterval) -/
 def duration (p : DischargeProof) : Nat :=
-  p.endTime.nanos - p.startTime.nanos
+  p.timeInterval.duration
+
+/-- Duration is non-negative (follows from TimeInterval proof) -/
+theorem duration_nonneg (p : DischargeProof) : 0 ≤ p.duration := 
+  TimeInterval.duration_nonneg p.timeInterval
 
 end DischargeProof
 

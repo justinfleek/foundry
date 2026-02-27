@@ -44,6 +44,7 @@ common extensions
     OverloadedStrings
     TypeApplications
     TypeFamilies
+    UndecidableInstances
     DataKinds
     GADTs
     PolyKinds
@@ -71,6 +72,8 @@ library
     Foundry.Core.Brand.Tagline
     Foundry.Core.Brand.Editorial
     Foundry.Core.Brand.Provenance
+    Foundry.Core.Brand.Source
+    Foundry.Core.Brand.Completion
     Foundry.Core.Brand.Logo
     Foundry.Core.Brand.Logo.Sizing
     Foundry.Core.Brand.Logo.Usage
@@ -84,9 +87,14 @@ library
     Foundry.Core.Brand.Hierarchy
     Foundry.Core.Brand.AgentContext
     Foundry.Core.Agent
-    Foundry.Core.Agent.Permission
+    Foundry.Core.Agent.Allocation
     Foundry.Core.Agent.Budget
     Foundry.Core.Agent.Context
+    Foundry.Core.Agent.Graded
+    Foundry.Core.Agent.ILP
+    Foundry.Core.Agent.Permission
+    Foundry.Core.Agent.Solver
+    Foundry.Core.Agent.Task
     Foundry.Core.Effect
     Foundry.Core.Effect.Graded
     Foundry.Core.Effect.CoEffect
@@ -138,6 +146,8 @@ test-suite foundry-core-test
   main-is:          Main.hs
   other-modules:
     Test.Foundry.Core.Agent
+    Test.Foundry.Core.Agent.Allocation
+    Test.Foundry.Core.Agent.Graded
     Test.Foundry.Core.Brand
     Test.Foundry.Core.Brand.Generators
     Test.Foundry.Core.Brand.Tagline

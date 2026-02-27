@@ -22,6 +22,12 @@ import Foundry.Pipeline
 -- Foundry Brand proofs (local - not dependent on external Hydrogen)
 import Foundry.Brand
 
+-- Budget conservation proofs (omega tactic)
+import Foundry.Budget
+
+-- Timestamp ordering proofs (omega tactic)
+import Foundry.Timestamp
+
 -- NOTE: Cornell and Continuity are available but have complex dependencies
 -- Import them individually as needed:
 --   import Foundry.Cornell
