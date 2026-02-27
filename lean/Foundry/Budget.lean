@@ -174,6 +174,30 @@ def spendAll (amounts : List Nat) (b : Budget) : Option Budget :=
 def totalAmount (amounts : List Nat) : Nat :=
   amounts.foldl (· + ·) 0
 
+/-- totalAmount of cons -/
+theorem totalAmount_cons (a : Nat) (as : List Nat) :
+    totalAmount (a :: as) = a + totalAmount as := by
+  simp only [totalAmount, List.foldl]
+  -- Need to show: foldl (· + ·) a as = a + foldl (· + ·) 0 as
+  induction as generalizing a with
+  | nil => simp [List.foldl]
+  | cons x xs ih =>
+    simp only [List.foldl]
+    rw [ih (a + x)]
+    rw [ih x]
+    omega
+
+/-- spendAll of cons unfolds to bind -/
+theorem spendAll_cons (a : Nat) (as : List Nat) (b : Budget) :
+    spendAll (a :: as) b = (spend a b).bind (spendAll as) := by
+  simp only [spendAll, List.foldlM]
+  rfl
+
+/-- Remaining after successful spend -/
+theorem remaining_after_spend (amount : Nat) (b b' : Budget)
+    (h : spend amount b = some b') : remaining b' = remaining b - amount := 
+  spend_decreases_remaining amount b b' h
+
 /-- Multi-spend succeeds iff total ≤ remaining -/
 theorem spendAll_succeeds_iff (amounts : List Nat) (b : Budget) :
     (spendAll amounts b).isSome ↔ 
@@ -185,7 +209,39 @@ theorem spendAll_succeeds_iff (amounts : List Nat) (b : Budget) :
     · intro _; omega
     · intro _; simp
   | cons a as ih =>
-    simp only [spendAll, List.foldlM, totalAmount, List.foldl]
-    sorry  -- Full proof requires additional lemmas about foldl
+    rw [spendAll_cons, totalAmount_cons]
+    constructor
+    · -- Forward: isSome → total ≤ remaining
+      intro hsome
+      simp only [Option.bind_isSome] at hsome
+      obtain ⟨b', hspend, hrest⟩ := hsome
+      have ha : a ≤ remaining b := by
+        have := spend_succeeds_iff a b
+        rw [this] at hspend
+        have hvalid := b.valid
+        simp only [remaining]
+        omega
+      have hremaining := remaining_after_spend a b b' hspend
+      rw [ih] at hrest
+      omega
+    · -- Backward: total ≤ remaining → isSome
+      intro htotal
+      simp only [Option.bind_isSome]
+      have ha : a ≤ remaining b := by omega
+      have hspend_ok : b.spent + a ≤ b.limit.cents := by
+        have hvalid := b.valid
+        simp only [remaining] at ha
+        omega
+      -- spend a b succeeds
+      have hspend : (spend a b).isSome := by
+        rw [spend_succeeds_iff]
+        exact hspend_ok
+      obtain ⟨b', hb'⟩ := Option.isSome_iff_exists.mp hspend
+      use b'
+      constructor
+      · exact hb'
+      · rw [ih]
+        have hremaining := remaining_after_spend a b b' hb'
+        omega
 
 end Foundry.Budget
