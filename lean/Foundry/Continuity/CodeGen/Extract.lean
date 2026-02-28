@@ -1,7 +1,7 @@
-import Foundry.Foundry.Continuity.CodeGen
-import Foundry.Foundry.Continuity.CodeGen.Haskell
-import Foundry.Foundry.Continuity.CodeGen.Cpp
-import Foundry.Foundry.Continuity.CodeGen.Rust
+import Foundry.Continuity.CodeGen
+import Foundry.Continuity.CodeGen.Haskell
+import Foundry.Continuity.CodeGen.Cpp
+import Foundry.Continuity.CodeGen.Rust
 
 /-!
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

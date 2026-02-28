@@ -15,7 +15,7 @@ MicroVMs provide stronger isolation (isospin for GPU).
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 -/
 
-import Foundry.Foundry.Continuity.Derivation
+import Foundry.Continuity.Derivation
 
 namespace Foundry.Continuity.Isolation
 

@@ -1,4 +1,4 @@
-import Foundry.Foundry.Cornell.StateMachine
+import Foundry.Cornell.StateMachine
 
 /-!
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

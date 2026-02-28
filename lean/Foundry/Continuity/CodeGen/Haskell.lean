@@ -1,4 +1,4 @@
-import Foundry.Foundry.Continuity.CodeGen
+import Foundry.Continuity.CodeGen
 
 /-!
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

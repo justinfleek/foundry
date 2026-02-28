@@ -31,7 +31,7 @@
   2. Report exact bytes consumed from input
 -/
 
-import Foundry.Foundry.Cornell.Basic
+import Foundry.Cornell.Basic
 
 namespace Foundry.Cornell.Git
 

@@ -23,7 +23,7 @@ The DISCHARGE PROOF is evidence that coeffects were satisfied.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 -/
 
-import Foundry.Foundry.Continuity.Crypto
+import Foundry.Continuity.Crypto
 
 namespace Foundry.Continuity.Coeffect
 

@@ -99,6 +99,8 @@ genScrapeOptions = ScrapeOptions
   <*> Gen.bool                                 -- extractImages
   <*> Gen.bool                                 -- extractFonts
   <*> Gen.int (Range.linear 0 10)             -- maxDepth
+  <*> Gen.bool                                 -- extractVisualElements
+  <*> Gen.bool                                 -- elementScreenshots
 
 -- | Generate valid URL
 genURL :: Gen Text

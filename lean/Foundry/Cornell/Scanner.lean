@@ -22,7 +22,7 @@
   - URI parsing (scan segments between /, ?, #)
 -/
 
-import Foundry.Foundry.Cornell.Basic
+import Foundry.Cornell.Basic
 
 namespace Foundry.Cornell.Scanner
 

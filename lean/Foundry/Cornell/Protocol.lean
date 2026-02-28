@@ -9,7 +9,7 @@
   Factor the framing once, prove it once, use it everywhere.
 -/
 
-import Foundry.Foundry.Cornell.Basic
+import Foundry.Cornell.Basic
 
 namespace Foundry.Cornell.Protocol
 

@@ -25,7 +25,7 @@
   Where (i) denotes a variable-length integer.
 -/
 
-import Foundry.Foundry.Cornell.Basic
+import Foundry.Cornell.Basic
 
 namespace Foundry.Cornell.Http3
 

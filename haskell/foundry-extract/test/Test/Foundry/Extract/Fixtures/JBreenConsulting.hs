@@ -104,6 +104,7 @@ jbreenScrapeResult = ScrapeResult
   , srFontData = jbreenFontData
   , srAssets = jbreenAssets
   , srRawHTML = jbreenRawHTML
+  , srVisualDecomposition = Nothing  -- Visual extraction not used in this fixture
   }
 
 --------------------------------------------------------------------------------

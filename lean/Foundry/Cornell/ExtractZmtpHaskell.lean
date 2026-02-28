@@ -5,7 +5,7 @@
   The generated code exactly matches the verified Lean implementation.
 -/
 
-import Foundry.Foundry.Cornell.Zmtp
+import Foundry.Cornell.Zmtp
 
 namespace Cornell.ExtractZmtpHaskell
 

@@ -17,9 +17,9 @@ When can we use a cached build output?
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 -/
 
-import Foundry.Foundry.Continuity.Crypto
-import Foundry.Foundry.Continuity.Trust
-import Foundry.Foundry.Continuity.Witness
+import Foundry.Continuity.Crypto
+import Foundry.Continuity.Trust
+import Foundry.Continuity.Witness
 
 namespace Foundry.Continuity.Cache
 

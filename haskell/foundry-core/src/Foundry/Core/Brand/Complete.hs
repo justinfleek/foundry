@@ -5,7 +5,7 @@
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Module      : Foundry.Core.Brand.Complete
-Description : Unified CompleteBrand type with all 18+ components
+Description : Unified CompleteBrand type with all 20+ components
 Copyright   : (c) Straylight Software, 2026
 License     : BSD-3-Clause
 
@@ -14,7 +14,7 @@ from the SMART Brand Framework into a single coherent structure.
 
 == SMART Brand Framework
 
-This module implements the complete 10-section SMART Brand Framework:
+This module implements the complete SMART Brand Framework:
 
 1. Identity (ID, Name, Domain)
 2. Overview (Origin, Promise, Industry)
@@ -31,7 +31,9 @@ This module implements the complete 10-section SMART Brand Framework:
 13. Material (Shadows, Surfaces)
 14. Imagery (Photography, Illustration)
 15. Themes (Light, Dark, Contrast)
-16. Provenance (Source, Hash, Timestamp)
+16. UI Elements (Buttons, Elevation, Accessibility)
+17. Graphic Elements (Patterns, Textures, Motifs)
+18. Provenance (Source, Hash, Timestamp)
 
 == Dependencies
 
@@ -69,6 +71,7 @@ import GHC.Generics (Generic)
 import Foundry.Core.Brand.Customer (CustomerSegment)
 import Foundry.Core.Brand.Editorial (MasterStyleList)
 import Foundry.Core.Brand.Gradient (GradientSpecification)
+import Foundry.Core.Brand.GraphicElements (GraphicElementsSpecification)
 import Foundry.Core.Brand.Identity (BrandId, BrandName, Domain)
 import Foundry.Core.Brand.Imagery (ImageryGuidelines)
 import Foundry.Core.Brand.Layout (LayoutSystem)
@@ -82,6 +85,7 @@ import Foundry.Core.Brand.Strategy (StrategicLayer)
 import Foundry.Core.Brand.Tagline (TaglineSet)
 import Foundry.Core.Brand.Theme (ThemeSet)
 import Foundry.Core.Brand.Typography (Typography)
+import Foundry.Core.Brand.UIElements (UISpecification)
 import Foundry.Core.Brand.Voice (BrandVoice)
 
 --------------------------------------------------------------------------------
@@ -171,6 +175,20 @@ data CompleteBrand = CompleteBrand
     -- ^ Light/dark/contrast themes (optional)
     
     -- ════════════════════════════════════════════════════════════════════════
+    -- EXECUTION LAYER - UI ELEMENTS
+    -- ════════════════════════════════════════════════════════════════════════
+    
+  , cbUIElements :: !(Maybe UISpecification)
+    -- ^ Button specs, elevation, visual treatment, accessibility (optional)
+    
+    -- ════════════════════════════════════════════════════════════════════════
+    -- EXECUTION LAYER - GRAPHIC ELEMENTS
+    -- ════════════════════════════════════════════════════════════════════════
+    
+  , cbGraphicElements :: !(Maybe GraphicElementsSpecification)
+    -- ^ Patterns, textures, logo-derived motifs (optional)
+    
+    -- ════════════════════════════════════════════════════════════════════════
     -- METADATA
     -- ════════════════════════════════════════════════════════════════════════
     
@@ -203,6 +221,8 @@ mkCompleteBrand
   -> Maybe MaterialSystem
   -> Maybe ImageryGuidelines
   -> Maybe ThemeSet
+  -> Maybe UISpecification
+  -> Maybe GraphicElementsSpecification
   -> Provenance
   -> CompleteBrand
 mkCompleteBrand = CompleteBrand
@@ -262,6 +282,8 @@ summarizeBrand cb = BrandSummary
       + maybe 0 (const 1) (cbMaterial brand)
       + maybe 0 (const 1) (cbImagery brand)
       + maybe 0 (const 1) (cbThemes brand)
+      + maybe 0 (const 1) (cbUIElements brand)
+      + maybe 0 (const 1) (cbGraphicElements brand)
 
 --------------------------------------------------------------------------------
 -- Validation

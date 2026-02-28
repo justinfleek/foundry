@@ -32,7 +32,7 @@
      - Code generation possible
 -/
 
-import Foundry.Foundry.Cornell.Scanner
+import Foundry.Cornell.Scanner
 
 namespace Foundry.Cornell.Parser
 

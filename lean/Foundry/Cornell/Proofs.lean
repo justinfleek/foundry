@@ -18,21 +18,6 @@ namespace Foundry.Cornell.Proofs
 abbrev Bytes := ByteArray
 
 -- ═══════════════════════════════════════════════════════════════════════════════
--- BYTEARRAY LEMMAS (missing from Lean 4.15.0 stdlib)
--- ═══════════════════════════════════════════════════════════════════════════════
-
-/-- Indexing into the left side of an appended ByteArray -/
-theorem ByteArray.getElem_append_left {i : Nat} {a b : ByteArray} (h : i < a.size) 
-    {h' : i < (a ++ b).size := by simp [ByteArray.size_append]; omega} : 
-    (a ++ b)[i]'h' = a[i]'h := by
-  simp only [ByteArray.getElem_eq_data_getElem]
-  have hdata : (a ++ b).data = a.data ++ b.data := by rfl
-  rw [hdata]
-  have hlist : (a.data ++ b.data)[i]'(by simp; omega) = a.data[i]'(by simp at h; exact h) := by
-    exact List.getElem_append_left h
-  simp_all
-
--- ═══════════════════════════════════════════════════════════════════════════════
 -- PARSE RESULT
 -- ═══════════════════════════════════════════════════════════════════════════════
 
@@ -44,26 +29,26 @@ inductive ParseResult (α : Type) where
 
 namespace ParseResult
 
-def map (f : α → β) : ParseResult α → ParseResult β
+def map {α β : Type} (f : α → β) : ParseResult α → ParseResult β
   | ok a rest => ok (f a) rest
   | fail => fail
 
-def bind (r : ParseResult α) (f : α → Bytes → ParseResult β) : ParseResult β :=
+def bind {α β : Type} (r : ParseResult α) (f : α → Bytes → ParseResult β) : ParseResult β :=
   match r with
   | ok a rest => f a rest
   | fail => fail
 
 -- Lemmas about ParseResult
-@[simp] theorem map_ok (f : α → β) (a : α) (rest : Bytes) : 
+@[simp] theorem map_ok {α β : Type} (f : α → β) (a : α) (rest : Bytes) : 
     map f (ok a rest) = ok (f a) rest := rfl
 
-@[simp] theorem map_fail (f : α → β) : 
+@[simp] theorem map_fail {α β : Type} (f : α → β) : 
     map f (fail : ParseResult α) = fail := rfl
 
-@[simp] theorem bind_ok (a : α) (rest : Bytes) (f : α → Bytes → ParseResult β) :
+@[simp] theorem bind_ok {α β : Type} (a : α) (rest : Bytes) (f : α → Bytes → ParseResult β) :
     bind (ok a rest) f = f a rest := rfl
 
-@[simp] theorem bind_fail (f : α → Bytes → ParseResult β) :
+@[simp] theorem bind_fail {α β : Type} (f : α → Bytes → ParseResult β) :
     bind (fail : ParseResult α) f = fail := rfl
 
 end ParseResult
@@ -175,7 +160,7 @@ def u8 : Box UInt8 where
 Sequence two boxes: parse A then B, serialize A then B.
 If both A and B have verified roundtrip, so does (A, B).
 -/
-def seq (boxA : Box α) (boxB : Box β) : Box (α × β) where
+def seq {α β : Type} (boxA : Box α) (boxB : Box β) : Box (α × β) where
   parse bs := 
     boxA.parse bs |>.bind fun a rest =>
       boxB.parse rest |>.map fun b => (a, b)
@@ -213,7 +198,7 @@ def seq (boxA : Box α) (boxB : Box β) : Box (α × β) where
 Map a box through an isomorphism.
 Given Box α and bijection f : α ↔ β, get Box β.
 -/
-def isoBox (box : Box α) (f : α → β) (g : β → α) 
+def isoBox {α β : Type} (box : Box α) (f : α → β) (g : β → α) 
     (fg : ∀ b, f (g b) = b) (_gf : ∀ a, g (f a) = a) : Box β where
   parse bs := box.parse bs |>.map f
   serialize b := box.serialize (g b)

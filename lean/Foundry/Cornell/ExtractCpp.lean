@@ -26,8 +26,8 @@
   ```
 -/
 
-import Foundry.Foundry.Cornell.Basic
-import Foundry.Foundry.Cornell.Nix
+import Foundry.Cornell.Basic
+import Foundry.Cornell.Nix
 
 namespace Cornell.ExtractCpp
 

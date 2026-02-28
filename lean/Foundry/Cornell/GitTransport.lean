@@ -12,8 +12,8 @@
   Uses Foundry.Cornell.Git for packfile parsing.
 -/
 
-import Foundry.Foundry.Cornell.Protocol
-import Foundry.Foundry.Cornell.Git
+import Foundry.Cornell.Protocol
+import Foundry.Cornell.Git
 
 namespace Foundry.Cornell.GitTransport
 
@@ -71,7 +71,7 @@ def parseRefAdvertisement (frames : List Frame) : Option RefAdvertisement :=
       | none => []
     -- Extract HEAD symref from capabilities
     let head := caps.findSome? fun c =>
-      if c.startsWith "symref=HEAD:" then some (c.drop 12).toString
+      if c.startsWith "symref=HEAD:" then some (c.drop 12)
       else none
     some ⟨refs, caps, head⟩
 
@@ -124,9 +124,9 @@ inductive ServerResponse where
 def parseServerResponse (s : String) : Option ServerResponse :=
   let s := s.trimRight
   if s == "NAK" then some .nak
-  else if s.startsWith "ACK " then some (.ack (s.drop 4).toString)
-  else if s.startsWith "shallow " then some (.shallow (s.drop 8).toString)
-  else if s.startsWith "unshallow " then some (.unshallow (s.drop 10).toString)
+  else if s.startsWith "ACK " then some (.ack (s.drop 4))
+  else if s.startsWith "shallow " then some (.shallow (s.drop 8))
+  else if s.startsWith "unshallow " then some (.unshallow (s.drop 10))
   else none
 
 -- ═══════════════════════════════════════════════════════════════════════════════

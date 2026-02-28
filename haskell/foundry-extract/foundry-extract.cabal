@@ -71,6 +71,8 @@ library
     Foundry.Extract.Voice.Tone
     Foundry.Extract.Compose
     Foundry.Extract.Types
+    Foundry.Extract.Types.Visual
+    Foundry.Extract.Visual
   build-depends:
     , aeson           >= 2.0   && < 3
     , attoparsec      >= 0.14  && < 1

@@ -36,7 +36,7 @@
   - `no_backtrack`: parser never needs to re-read bytes
 -/
 
-import Foundry.Foundry.Cornell.Basic
+import Foundry.Cornell.Basic
 
 namespace Foundry.Cornell.Zmtp
 

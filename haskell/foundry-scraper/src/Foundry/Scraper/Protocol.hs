@@ -85,26 +85,32 @@ instance ToJSON ScrapeRequest where
 
 -- | Options controlling scrape behavior
 data ScrapeOptions = ScrapeOptions
-  { soTimeout       :: !Int
+  { soTimeout              :: !Int
     -- ^ Timeout in milliseconds
-  , soWaitForJS     :: !Bool
+  , soWaitForJS            :: !Bool
     -- ^ Wait for JavaScript to execute
-  , soExtractImages :: !Bool
+  , soExtractImages        :: !Bool
     -- ^ Extract image assets
-  , soExtractFonts  :: !Bool
+  , soExtractFonts         :: !Bool
     -- ^ Extract font information
-  , soMaxDepth      :: !Int
+  , soMaxDepth             :: !Int
     -- ^ Maximum CSS import depth to follow
+  , soExtractVisualElements :: !Bool
+    -- ^ Extract visual decomposition (bounding boxes, screenshots)
+  , soElementScreenshots   :: !Bool
+    -- ^ Take element-level screenshots (expensive but complete)
   }
   deriving stock (Eq, Show, Generic)
 
 instance ToJSON ScrapeOptions where
   toJSON ScrapeOptions{..} = object
-    [ "timeout"       .= soTimeout
-    , "waitForJS"     .= soWaitForJS
-    , "extractImages" .= soExtractImages
-    , "extractFonts"  .= soExtractFonts
-    , "maxDepth"      .= soMaxDepth
+    [ "timeout"               .= soTimeout
+    , "waitForJS"             .= soWaitForJS
+    , "extractImages"         .= soExtractImages
+    , "extractFonts"          .= soExtractFonts
+    , "maxDepth"              .= soMaxDepth
+    , "extractVisualElements" .= soExtractVisualElements
+    , "elementScreenshots"    .= soElementScreenshots
     ]
 
 instance FromJSON ScrapeOptions where
@@ -114,15 +120,19 @@ instance FromJSON ScrapeOptions where
     <*> v .: "extractImages"
     <*> v .: "extractFonts"
     <*> v .: "maxDepth"
+    <*> v .: "extractVisualElements"
+    <*> v .: "elementScreenshots"
 
 -- | Default scrape options
 defaultOptions :: ScrapeOptions
 defaultOptions = ScrapeOptions
-  { soTimeout = 30000        -- 30 seconds
-  , soWaitForJS = True       -- Wait for JS rendering
-  , soExtractImages = True   -- Get images
-  , soExtractFonts = True    -- Get fonts
-  , soMaxDepth = 3           -- Follow 3 levels of CSS imports
+  { soTimeout = 30000              -- 30 seconds
+  , soWaitForJS = True             -- Wait for JS rendering
+  , soExtractImages = True         -- Get images
+  , soExtractFonts = True          -- Get fonts
+  , soMaxDepth = 3                 -- Follow 3 levels of CSS imports
+  , soExtractVisualElements = True -- Extract visual decomposition
+  , soElementScreenshots = False   -- Disabled by default (expensive)
   }
 
 --------------------------------------------------------------------------------

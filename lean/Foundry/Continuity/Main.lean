@@ -20,17 +20,17 @@
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 -/
 
-import Foundry.Foundry.Continuity.Crypto
-import Foundry.Foundry.Continuity.Authority
-import Foundry.Foundry.Continuity.Trust
-import Foundry.Foundry.Continuity.Coeffect
-import Foundry.Foundry.Continuity.Witness
-import Foundry.Foundry.Continuity.Derivation
-import Foundry.Foundry.Continuity.Toolchain
-import Foundry.Foundry.Continuity.Cache
-import Foundry.Foundry.Continuity.Isolation
-import Foundry.Foundry.Continuity.Parametricity
-import Foundry.Foundry.Continuity.Protocol
+import Foundry.Continuity.Crypto
+import Foundry.Continuity.Authority
+import Foundry.Continuity.Trust
+import Foundry.Continuity.Coeffect
+import Foundry.Continuity.Witness
+import Foundry.Continuity.Derivation
+import Foundry.Continuity.Toolchain
+import Foundry.Continuity.Cache
+import Foundry.Continuity.Isolation
+import Foundry.Continuity.Parametricity
+import Foundry.Continuity.Protocol
 
 namespace Foundry.Continuity.Main
 

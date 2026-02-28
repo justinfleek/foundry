@@ -1,5 +1,5 @@
-import Foundry.Foundry.Continuity.CodeGen
-import Foundry.Foundry.Continuity.CodeGen.Doc
+import Foundry.Continuity.CodeGen
+import Foundry.Continuity.CodeGen.Doc
 
 /-!
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

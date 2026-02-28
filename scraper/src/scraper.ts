@@ -31,6 +31,9 @@ import type {
   AssetData,
   AssetType,
 } from "./types.js";
+import { extractVisualDecomposition } from "./visual.js";
+
+// Note: VisualDecomposition type is inferred from extractVisualDecomposition return type
 
 // ============================================================================
 // Exported Type Re-exports (for consumers of this module)
@@ -87,7 +90,7 @@ export async function scrapeURL(
     const domain = urlObj.hostname.replace(/^www\./, "");
 
     // Run all extractions in parallel
-    const [stylesheets, computedStyles, textContent, fontData, assets, rawHTML] =
+    const [stylesheets, computedStyles, textContent, fontData, assets, rawHTML, visualDecomposition] =
       await Promise.all([
         extractStylesheets(page, options.maxDepth),
         extractComputedStyles(page),
@@ -95,6 +98,9 @@ export async function scrapeURL(
         extractFontData(page),
         options.extractImages ? extractAssets(page) : Promise.resolve([]),
         page.content().then((html) => Buffer.from(html).toString("base64")),
+        options.extractVisualElements
+          ? extractVisualDecomposition(page, { elementScreenshots: options.elementScreenshots })
+          : Promise.resolve(null),
       ]);
 
     return {
@@ -106,6 +112,7 @@ export async function scrapeURL(
       srFontData: fontData,
       srAssets: assets,
       srRawHTML: rawHTML,
+      srVisualDecomposition: visualDecomposition,
     };
   } finally {
     await browser.close();

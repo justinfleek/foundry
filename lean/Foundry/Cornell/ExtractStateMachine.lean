@@ -5,7 +5,7 @@
   The generated code matches the structure of handshake.hpp exactly.
 -/
 
-import Foundry.Foundry.Cornell.StateMachine
+import Foundry.Cornell.StateMachine
 
 namespace Cornell.ExtractStateMachine
 

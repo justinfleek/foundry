@@ -28,7 +28,7 @@
   the hand-written handshake.hpp structure exactly.
 -/
 
-import Foundry.Foundry.Cornell.Basic
+import Foundry.Cornell.Basic
 
 namespace Foundry.Cornell.StateMachine
 

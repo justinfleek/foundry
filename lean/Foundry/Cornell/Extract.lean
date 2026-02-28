@@ -18,12 +18,12 @@
   - Golden tests: round-trip on captured protocol data
 -/
 
-import Foundry.Foundry.Cornell.Basic
-import Foundry.Foundry.Cornell.Nix
+import Foundry.Cornell.Basic
+import Foundry.Cornell.Nix
 
 namespace Cornell.Extract
 
-open Cornell
+open Foundry.Cornell Foundry.Cornell.Proofs
 
 -- ═══════════════════════════════════════════════════════════════════════════════
 -- TEST VECTOR GENERATION

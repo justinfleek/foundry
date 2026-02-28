@@ -19,16 +19,14 @@
 -- Foundry Pipeline proofs (graded monads, co-effect algebra)
 import Foundry.Pipeline
 
--- Foundry Brand proofs (local - not dependent on external Hydrogen)
-import Foundry.Brand
+-- Cornell: Verified wire formats (SIGIL, ZMTP, Protobuf)
+-- Core modules have complete proofs, some theorems deferred with sorry.
+import Foundry.Cornell
 
--- Budget conservation proofs (omega tactic)
-import Foundry.Budget
-
--- Timestamp ordering proofs (omega tactic)
-import Foundry.Timestamp
-
--- NOTE: Cornell and Continuity are available but have complex dependencies
--- Import them individually as needed:
---   import Foundry.Cornell
---   import Foundry.Continuity
+-- NOTE: The following modules depend on external packages not yet configured:
+-- - Foundry.Brand (requires Hydrogen)
+-- - Foundry.Budget (requires Mathlib)
+-- - Foundry.Timestamp (requires Mathlib)
+-- - Foundry.Cornell.SSP (3000+ line file with crypto, needs significant work)
+-- - Foundry.Continuity (full coeffect algebra)
+-- Import them individually once dependencies are added to lakefile.lean

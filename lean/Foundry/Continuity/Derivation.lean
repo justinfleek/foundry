@@ -15,7 +15,7 @@ A derivation is a recipe. Its hash determines the output path.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 -/
 
-import Foundry.Foundry.Continuity.Crypto
+import Foundry.Continuity.Crypto
 
 namespace Foundry.Continuity.Derivation
 

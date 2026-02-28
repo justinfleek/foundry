@@ -15,9 +15,9 @@ Replaces SSH with verified state machines and vouch-based trust.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 -/
 
-import Foundry.Foundry.Continuity.Crypto
-import Foundry.Foundry.Continuity.Trust
-import Foundry.Foundry.Continuity.Authority
+import Foundry.Continuity.Crypto
+import Foundry.Continuity.Trust
+import Foundry.Continuity.Authority
 
 namespace Foundry.Continuity.Protocol
 

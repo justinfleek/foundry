@@ -30,7 +30,7 @@
   - CONTINUATION (0x9): Header continuation
 -/
 
-import Foundry.Foundry.Cornell.Basic
+import Foundry.Cornell.Basic
 
 namespace Foundry.Cornell.Http2
 

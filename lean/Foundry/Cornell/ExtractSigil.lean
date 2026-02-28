@@ -23,7 +23,7 @@
   - `sigil_machine` satisfying `evring::machine` concept
 -/
 
-import Foundry.Foundry.Cornell.Sigil
+import Foundry.Cornell.Sigil
 
 namespace Cornell.ExtractSigil
 

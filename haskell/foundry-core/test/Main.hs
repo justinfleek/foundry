@@ -15,6 +15,8 @@ import Test.Foundry.Core.Brand.Tagline qualified as Tagline
 import Test.Foundry.Core.Brand.Editorial qualified as Editorial
 import Test.Foundry.Core.Brand.Strategy qualified as Strategy
 import Test.Foundry.Core.Brand.Security qualified as Security
+import Test.Foundry.Core.Brand.UIElements qualified as UIElements
+import Test.Foundry.Core.Brand.GraphicElements qualified as GraphicElements
 import Test.Foundry.Core.Effect qualified as Effect
 import Test.Tasty (defaultMain, testGroup)
 
@@ -30,5 +32,7 @@ main =
       , Editorial.tests
       , Strategy.tests
       , Security.tests
+      , UIElements.tests
+      , GraphicElements.tests
       , Effect.tests
       ]

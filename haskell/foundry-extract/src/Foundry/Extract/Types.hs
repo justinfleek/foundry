@@ -52,12 +52,17 @@ module Foundry.Extract.Types
   , AssetData (..)
   , AssetType (..)
 
+    -- * Visual Elements (re-exported)
+  , module Foundry.Extract.Types.Visual
+
     -- * Extraction Errors
   , ExtractionError (..)
   , ExtractionWarning (..)
   ) where
 
-import Data.Aeson (FromJSON (..), ToJSON (..), withObject, (.:), (.=), object)
+import Foundry.Extract.Types.Visual
+
+import Data.Aeson (FromJSON (..), ToJSON (..), withObject, (.:), (.:?), (.=), object)
 import Data.ByteString (ByteString)
 import Data.ByteString.Base64 qualified as Base64
 import Data.Map.Strict (Map)
@@ -91,6 +96,8 @@ data ScrapeResult = ScrapeResult
     -- ^ Discovered assets (images, SVGs, etc.)
   , srRawHTML      :: !ByteString
     -- ^ Raw HTML for hash computation
+  , srVisualDecomposition :: !(Maybe VisualDecomposition)
+    -- ^ Visual decomposition for pixel-perfect reconstruction
   }
   deriving stock (Eq, Show, Generic)
 
@@ -105,6 +112,7 @@ instance FromJSON ScrapeResult where
     <*> v .: "srFontData"
     <*> v .: "srAssets"
     <*> (decodeBase64 <$> v .: "srRawHTML")
+    <*> v .:? "srVisualDecomposition"
     where
       decodeBase64 :: Text -> ByteString
       decodeBase64 t = case Base64.decode (Text.encodeUtf8 t) of
@@ -114,14 +122,15 @@ instance FromJSON ScrapeResult where
 -- | Custom ToJSON for ScrapeResult to encode ByteString as Base64
 instance ToJSON ScrapeResult where
   toJSON sr = object
-    [ "srDomain"         .= srDomain sr
-    , "srURL"            .= srURL sr
-    , "srStylesheets"    .= srStylesheets sr
-    , "srComputedStyles" .= srComputedStyles sr
-    , "srTextContent"    .= srTextContent sr
-    , "srFontData"       .= srFontData sr
-    , "srAssets"         .= srAssets sr
-    , "srRawHTML"        .= encodeBase64 (srRawHTML sr)
+    [ "srDomain"              .= srDomain sr
+    , "srURL"                 .= srURL sr
+    , "srStylesheets"         .= srStylesheets sr
+    , "srComputedStyles"      .= srComputedStyles sr
+    , "srTextContent"         .= srTextContent sr
+    , "srFontData"            .= srFontData sr
+    , "srAssets"              .= srAssets sr
+    , "srRawHTML"             .= encodeBase64 (srRawHTML sr)
+    , "srVisualDecomposition" .= srVisualDecomposition sr
     ]
     where
       encodeBase64 :: ByteString -> Text

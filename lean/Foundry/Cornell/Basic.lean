@@ -53,18 +53,18 @@ instance : Append Bytes := ⟨Bytes.append⟩
 -- ═══════════════════════════════════════════════════════════════════════════════
 
 open Foundry.Cornell.Proofs in
-instance [Repr α] : Repr (ParseResult α) where
+instance {α : Type} [Repr α] : Repr (ParseResult α) where
   reprPrec
     | .ok a _, n => Repr.addAppParen ("ParseResult.ok " ++ reprArg a ++ " <bytes>") n
     | .fail, _ => "ParseResult.fail"
 
 open Foundry.Cornell.Proofs in
-def ParseResult.isOk : ParseResult α → Bool
+def ParseResult.isOk {α : Type} : ParseResult α → Bool
   | .ok _ _ => true
   | .fail => false
 
 open Foundry.Cornell.Proofs in
-def ParseResult.toOption : ParseResult α → Option (α × Bytes)
+def ParseResult.toOption {α : Type} : ParseResult α → Option (α × Bytes)
   | .ok a rest => some (a, rest)
   | .fail => none
 
@@ -119,7 +119,7 @@ def bool64 : Box Bool where
 
 open Foundry.Cornell.Proofs in
 /-- Map a box through an isomorphism (alias for isoBox) -/
-def isoMap (box : Box α) (f : α → β) (g : β → α) 
+def isoMap {α β : Type} (box : Box α) (f : α → β) (g : β → α) 
     (iso_fg : ∀ b, f (g b) = b) (iso_gf : ∀ a, g (f a) = a) : Box β := 
   isoBox box f g iso_fg iso_gf
 

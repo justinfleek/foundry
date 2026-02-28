@@ -16,8 +16,8 @@
   Reference: https://protobuf.dev/programming-guides/encoding/
 -/
 
-import Foundry.Foundry.Cornell.Basic
-import Foundry.Foundry.Cornell.Proofs
+import Foundry.Cornell.Basic
+import Foundry.Cornell.Proofs
 
 namespace Foundry.Cornell.Protobuf
 

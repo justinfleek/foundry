@@ -17,7 +17,7 @@
   Reset-on-ambiguity semantics are preserved in all parsers.
 -/
 
-import Foundry.Foundry.Cornell.Nix
+import Foundry.Cornell.Nix
 
 namespace Cornell.ExtractNix
 

@@ -1,4 +1,4 @@
-import Foundry.Foundry.Continuity.CodeGen.Extract
+import Foundry.Continuity.CodeGen.Extract
 
 /-!
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

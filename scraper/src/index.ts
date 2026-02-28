@@ -58,6 +58,8 @@ async function main(): Promise<void> {
       extractImages: true,
       extractFonts: true,
       maxDepth: 3,
+      extractVisualElements: args.includes("--visual"),
+      elementScreenshots: args.includes("--screenshots"),
     };
 
     console.log(`Scraping: ${url}`);

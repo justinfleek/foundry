@@ -25,8 +25,6 @@ open Lake DSL
 
 package foundry where
   leanOptions := #[
-    ⟨`autoImplicit, false⟩,
-    ⟨`relaxedAutoImplicit, false⟩,
     ⟨`pp.unicode.fun, true⟩
   ]
 

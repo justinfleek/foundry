@@ -69,6 +69,29 @@ module Test.Foundry.Core.Brand.Generators
   , genPositioningStatement
   , genBrandPersonality
   , genStrategicLayer
+
+    -- * UIElements Generators
+  , genElevationLevel
+  , genElevationSpec
+  , genButtonState
+  , genButtonVariant
+  , genButtonSpec
+  , genAccessibilityRequirement
+  , genAccessibilityRule
+  , genVisualTreatment
+  , genUIPhilosophy
+  , genLightingDirection
+  , genUIElementRules
+  , genUISpecification
+
+    -- * GraphicElements Generators
+  , genGraphicElementType
+  , genDerivationSource
+  , genGraphicUsageContext
+  , genGraphicColorTreatment
+  , genModificationAllowed
+  , genGraphicElement
+  , genGraphicElementsSpecification
   
     -- * Adversarial Generators
   , genPoisonPill
@@ -171,6 +194,43 @@ import Foundry.Core.Brand.Strategy
   , mkBrandPersonality
   , mkStrategicLayer
   )
+
+import Foundry.Core.Brand.UIElements
+  ( ElevationLevel (..)
+  , ElevationSpec
+  , ButtonState (..)
+  , ButtonVariant (..)
+  , ButtonSpec
+  , AccessibilityRequirement (..)
+  , AccessibilityRule
+  , VisualTreatment (..)
+  , UIPhilosophy
+  , LightingDirection (..)
+  , UIElementRules
+  , UISpecification
+  , mkElevationSpec
+  , mkButtonSpec
+  , mkAccessibilityRule
+  , mkUIPhilosophy
+  , mkUIElementRules
+  , mkUISpecification
+  )
+
+import Foundry.Core.Brand.GraphicElements
+  ( GraphicElementType (..)
+  , DerivationSource (..)
+  , GraphicUsageContext (..)
+  , GraphicColorTreatment
+  , ModificationAllowed (..)
+  , GraphicElement
+  , GraphicElementsSpecification
+  , mkGraphicColorTreatment
+  , mkGraphicElement
+  , mkGraphicElementsSpecification
+  , defaultGraphicElementsSpecification
+  )
+import Foundry.Core.Brand.GraphicElements qualified as GE
+import Foundry.Core.Brand.Tagline qualified as TL
 
 -- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 --                                                  // realistic text patterns
@@ -546,7 +606,7 @@ genTaglineUsageRule :: Gen TaglineUsageRule
 genTaglineUsageRule = Gen.element
   [ UsageWithLogo
   , UsageStandalone
-  , NoModification
+  , TL.NoModification
   , NoCampaignCombination
   , RequiresApproval
   ]
@@ -814,3 +874,190 @@ genDeeplyNested = do
 genHighCardinality :: Gen [Text]
 genHighCardinality = 
   Gen.list (Range.linear 1000 10000) (Gen.text (Range.linear 5 20) Gen.alphaNum)
+
+-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+--                                                     // uielements generators
+-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+-- | Generate elevation level (ElevationFlat, ElevationRaised, ElevationFloating, ElevationOverlay)
+genElevationLevel :: Gen ElevationLevel
+genElevationLevel = Gen.element [ElevationFlat, ElevationRaised, ElevationFloating, ElevationOverlay]
+
+-- | Generate elevation spec with shadow properties
+genElevationSpec :: Gen (Maybe ElevationSpec)
+genElevationSpec = do
+  level <- genElevationLevel
+  blur <- Gen.double (Range.linearFrac 0.0 50.0)
+  offset <- Gen.double (Range.linearFrac 0.0 20.0)
+  pure $ mkElevationSpec level blur offset
+
+-- | Generate button state
+genButtonState :: Gen ButtonState
+genButtonState = Gen.element [ButtonDefault, ButtonHover, ButtonActive, ButtonFocused, ButtonDisabled]
+
+-- | Generate button variant
+genButtonVariant :: Gen ButtonVariant
+genButtonVariant = Gen.element [ButtonPrimary, ButtonSecondary, ButtonTertiary, ButtonGhost, ButtonDestructive]
+
+-- | Generate button specification
+genButtonSpec :: Gen (Maybe ButtonSpec)
+genButtonSpec = do
+  variant <- genButtonVariant
+  mElevation <- genElevationSpec
+  case mElevation of
+    Nothing -> pure Nothing
+    Just elevation -> do
+      borderRadius <- Gen.double (Range.linearFrac 0.0 24.0)
+      paddingH <- Gen.double (Range.linearFrac 8.0 32.0)
+      paddingV <- Gen.double (Range.linearFrac 4.0 16.0)
+      bgColor <- Gen.element ["#000000", "#ffffff", "#3b82f6", "#ef4444", "#22c55e"]
+      txtColor <- Gen.element ["#000000", "#ffffff", "#1e293b", "#fafafa"]
+      pure $ mkButtonSpec variant elevation borderRadius paddingH paddingV bgColor txtColor
+
+-- | Generate accessibility requirement type
+genAccessibilityRequirement :: Gen AccessibilityRequirement
+genAccessibilityRequirement = Gen.element
+  [ MinContrastRatio
+  , StrokeRequired
+  , FocusIndicator
+  , TouchTargetSize
+  , ReducedMotion
+  ]
+
+-- | Generate accessibility rule
+genAccessibilityRule :: Gen (Maybe AccessibilityRule)
+genAccessibilityRule = do
+  req <- genAccessibilityRequirement
+  value <- Gen.element ["4.5:1", "7:1", "44px", "48px", "true", "false"]
+  desc <- Gen.text (Range.linear 10 200) Gen.unicode
+  pure $ mkAccessibilityRule req value desc
+
+-- | Generate visual treatment style
+genVisualTreatment :: Gen VisualTreatment
+genVisualTreatment = Gen.element
+  [ Neumorphic
+  , Flat
+  , Glassmorphic
+  , Skeuomorphic
+  , Material
+  , Outlined
+  ]
+
+-- | Generate UI philosophy
+genUIPhilosophy :: Gen (Maybe UIPhilosophy)
+genUIPhilosophy = do
+  treatment <- genVisualTreatment
+  negativeSpace <- Gen.text (Range.linear 10 100) Gen.unicode
+  effectsUsage <- Gen.text (Range.linear 10 100) Gen.unicode
+  pure $ mkUIPhilosophy treatment negativeSpace effectsUsage
+
+-- | Generate lighting direction
+genLightingDirection :: Gen LightingDirection
+genLightingDirection = Gen.element [LightFromTop, LightFromTopLeft, LightFromTopRight, LightFromLeft, LightFromRight]
+
+-- | Generate UI element rules
+genUIElementRules :: Gen (Maybe UIElementRules)
+genUIElementRules = do
+  bgContext <- Gen.text (Range.linear 10 100) Gen.unicode
+  lighting <- genLightingDirection
+  intGrad <- Gen.text (Range.linear 5 50) Gen.unicode
+  accStroke <- Gen.bool
+  contrast <- Gen.double (Range.linearFrac 3.0 7.0)
+  pure $ mkUIElementRules bgContext lighting intGrad accStroke contrast
+
+-- | Generate complete UI specification
+genUISpecification :: Gen (Maybe UISpecification)
+genUISpecification = do
+  mPhilosophy <- genUIPhilosophy
+  mRules <- genUIElementRules
+  case (mPhilosophy, mRules) of
+    (Just philosophy, Just rules) -> do
+      buttons <- Gen.list (Range.linear 1 5) genButtonSpec
+      accessibility <- Gen.list (Range.linear 1 3) genAccessibilityRule
+      let validButtons = V.fromList [b | Just b <- buttons]
+          validAccessibility = V.fromList [a | Just a <- accessibility]
+      pure $ mkUISpecification philosophy rules validButtons validAccessibility
+    _ -> pure Nothing
+
+-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+--                                                 // graphicelements generators
+-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+-- | Generate graphic element type
+genGraphicElementType :: Gen GraphicElementType
+genGraphicElementType = Gen.element
+  [ Pattern
+  , Texture
+  , StrokeShape
+  , LogoDerivedPattern
+  , Motif
+  , Ornament
+  ]
+
+-- | Generate derivation source
+genDerivationSource :: Gen DerivationSource
+genDerivationSource = Gen.element
+  [ FromLogo
+  , FromIcon
+  , FromPalette
+  , FromTypography
+  , FromGeometry
+  , Original
+  ]
+
+-- | Generate graphic usage context
+genGraphicUsageContext :: Gen GraphicUsageContext
+genGraphicUsageContext = Gen.element
+  [ DarkBackgrounds
+  , LightBackgrounds
+  , AppAndMerch
+  , PrintMaterials
+  , DigitalMedia
+  , LargeFormat
+  , Packaging
+  ]
+
+-- | Generate graphic color treatment
+genGraphicColorTreatment :: Gen (Maybe GraphicColorTreatment)
+genGraphicColorTreatment = do
+  bgType <- Gen.text (Range.linear 5 30) Gen.unicode
+  primaryColor <- Gen.text (Range.linear 4 10) Gen.unicode
+  opacity <- Gen.double (Range.linearFrac 0.0 1.0)
+  pure $ mkGraphicColorTreatment bgType primaryColor opacity
+
+-- | Generate modification allowed policy
+genModificationAllowed :: Gen ModificationAllowed
+genModificationAllowed = Gen.element
+  [ GE.NoModification
+  , ScaleOnly
+  , ColorChange
+  , ApprovalRequired
+  ]
+
+-- | Generate graphic element
+-- mkGraphicElement :: Text -> GraphicElementType -> Text -> DerivationSource 
+--                 -> Vector GraphicUsageContext -> GraphicColorTreatment 
+--                 -> ModificationAllowed -> Maybe GraphicElement
+genGraphicElement :: Gen (Maybe GraphicElement)
+genGraphicElement = do
+  name <- Gen.text (Range.linear 5 50) Gen.unicode
+  elemType <- genGraphicElementType
+  description <- Gen.text (Range.linear 10 200) Gen.unicode
+  derivation <- genDerivationSource
+  contexts <- V.fromList <$> Gen.list (Range.linear 1 4) genGraphicUsageContext
+  mColorTreatment <- genGraphicColorTreatment
+  case mColorTreatment of
+    Nothing -> pure Nothing
+    Just colorTreatment -> do
+      modification <- genModificationAllowed
+      pure $ mkGraphicElement name elemType description derivation contexts colorTreatment modification
+
+-- | Generate complete graphic elements specification
+genGraphicElementsSpecification :: Gen GraphicElementsSpecification
+genGraphicElementsSpecification = do
+  elements <- Gen.list (Range.linear 1 5) genGraphicElement
+  notes <- Gen.text (Range.linear 20 300) Gen.unicode
+  let validElements = V.fromList [e | Just e <- elements]
+  case mkGraphicElementsSpecification validElements notes of
+    Just spec -> pure spec
+    Nothing   -> pure defaultGraphicElementsSpecification

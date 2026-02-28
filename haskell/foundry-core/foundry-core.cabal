@@ -82,6 +82,10 @@ library
     Foundry.Core.Brand.Theme
     Foundry.Core.Brand.Imagery
     Foundry.Core.Brand.Material
+    Foundry.Core.Brand.UIElements
+    Foundry.Core.Brand.UIElements.Buttons
+    Foundry.Core.Brand.UIElements.Accessibility
+    Foundry.Core.Brand.GraphicElements
     Foundry.Core.Brand.Complete
     Foundry.Core.Brand.Ontology
     Foundry.Core.Brand.Hierarchy
@@ -98,6 +102,12 @@ library
     Foundry.Core.Effect
     Foundry.Core.Effect.Graded
     Foundry.Core.Effect.CoEffect
+    -- GPU: Binary command format for billion-agent rendering
+    Foundry.Core.GPU
+    Foundry.Core.GPU.Command
+    Foundry.Core.GPU.Identified
+    Foundry.Core.GPU.Patch
+    Foundry.Core.GPU.Renderer
     -- Evring: Event-driven ring buffer state machines (from straylight/evring)
     -- Core modules (no io_uring dependency)
     Foundry.Core.Evring.Event
@@ -123,7 +133,9 @@ library
     , case-insensitive  >= 1.2   && < 2
     , containers        >= 0.6   && < 1
     , crypton           >= 1.0   && < 2
+    , crypton-x509      >= 1.7   && < 2
     , hashable          >= 1.4   && < 2
+    , memory            >= 0.18  && < 1
     , http-types        >= 0.12  && < 1
     , linear-base       >= 0.4   && < 1
     , mtl               >= 2.3   && < 3
@@ -154,6 +166,8 @@ test-suite foundry-core-test
     Test.Foundry.Core.Brand.Editorial
     Test.Foundry.Core.Brand.Strategy
     Test.Foundry.Core.Brand.Security
+    Test.Foundry.Core.Brand.UIElements
+    Test.Foundry.Core.Brand.GraphicElements
     Test.Foundry.Core.Effect
     Foundry.Core.Evring.TestSigil
   build-depends:

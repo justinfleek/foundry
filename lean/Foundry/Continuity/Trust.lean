@@ -15,8 +15,8 @@ you explicitly trust. Trust flows through vouch chains.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 -/
 
-import Foundry.Foundry.Continuity.Crypto
-import Foundry.Foundry.Continuity.Authority
+import Foundry.Continuity.Crypto
+import Foundry.Continuity.Authority
 
 namespace Foundry.Continuity.Trust
 

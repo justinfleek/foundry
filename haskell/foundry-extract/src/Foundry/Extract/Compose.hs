@@ -339,6 +339,8 @@ toCompleteBrand ber = do
     , cbMaterial = Nothing
     , cbImagery = Nothing
     , cbThemes = Nothing
+    , cbUIElements = Nothing
+    , cbGraphicElements = Nothing
     , cbProvenance = berProvenance ber
     }
 

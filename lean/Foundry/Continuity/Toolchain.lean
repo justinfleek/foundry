@@ -16,7 +16,7 @@ Different toolchains can produce identical builds (the coset).
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 -/
 
-import Foundry.Foundry.Continuity.Derivation
+import Foundry.Continuity.Derivation
 
 namespace Foundry.Continuity.Toolchain
 

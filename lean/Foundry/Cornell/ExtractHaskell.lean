@@ -5,7 +5,7 @@
   The generated code exactly matches the verified Lean implementation.
 -/
 
-import Foundry.Foundry.Cornell.Sigil
+import Foundry.Cornell.Sigil
 
 namespace Cornell.ExtractHaskell
 

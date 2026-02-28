@@ -24,7 +24,7 @@
   - `zmtp_machine` satisfying `evring::machine` concept
 -/
 
-import Foundry.Foundry.Cornell.Zmtp
+import Foundry.Cornell.Zmtp
 
 namespace Cornell.ExtractZmtp
 

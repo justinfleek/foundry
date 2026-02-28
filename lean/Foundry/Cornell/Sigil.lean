@@ -32,8 +32,8 @@
   - `no_leakage`: No information leakage across ambiguity boundary
 -/
 
-import Foundry.Foundry.Cornell.Basic
-import Foundry.Foundry.Cornell.StateMachine
+import Foundry.Cornell.Basic
+import Foundry.Cornell.StateMachine
 
 namespace Foundry.Cornell.Sigil
 

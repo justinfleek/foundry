@@ -24,9 +24,9 @@ To truly witness a build, we need eBPF-level syscall tracing.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 -/
 
-import Foundry.Foundry.Continuity.Crypto
-import Foundry.Foundry.Continuity.Coeffect
-import Foundry.Foundry.Continuity.Trust
+import Foundry.Continuity.Crypto
+import Foundry.Continuity.Coeffect
+import Foundry.Continuity.Trust
 
 namespace Foundry.Continuity.Witness
 
