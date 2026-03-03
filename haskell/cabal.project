@@ -10,8 +10,11 @@ packages:
   foundry-core/
   foundry-extract/
   foundry-storage/
-  foundry-scraper/
-  effect-monad/
+
+-- NOTE: foundry-scraper requires libzmq (zeromq4) to be installed system-wide.
+-- Install with: apt install libzmq3-dev (Debian/Ubuntu) or nix-shell -p zeromq
+-- Then uncomment:
+-- optional-packages: foundry-scraper/
 
 -- Use GHC 9.10 for stability
 -- with-compiler: ghc-9.10

@@ -107,10 +107,11 @@ library
     Foundry.Core.Effect
     Foundry.Core.Effect.Graded
     Foundry.Core.Effect.CoEffect
-    -- Orchard & Petricek graded monads (canonical)
-    Foundry.Core.Effects.Grade
+    -- Graded monad (from straylight-llm production)
     Foundry.Core.Effects.Graded
-    Foundry.Core.Effects.Do
+    -- Coeffect types and discharge proofs (from straylight-llm production)
+    Foundry.Core.Coeffect.Types
+    Foundry.Core.Coeffect.Discharge
     -- GPU: Binary command format for billion-agent rendering
     Foundry.Core.GPU
     Foundry.Core.GPU.Command
@@ -142,13 +143,13 @@ library
   build-depends:
     , aeson             >= 2.0   && < 3
     , base              >= 4.18  && < 5
+    , base16-bytestring >= 1.0   && < 2
     , bytestring        >= 0.11  && < 1
     , case-insensitive  >= 1.2   && < 2
     , containers        >= 0.6   && < 1
     , crypton           >= 1.0   && < 2
     , crypton-x509      >= 1.7   && < 2
     , deepseq           >= 1.4   && < 2
-    , effect-monad      >= 0.9   && < 1
     , hashable          >= 1.4   && < 2
     , memory            >= 0.18  && < 1
     , http-types        >= 0.12  && < 1

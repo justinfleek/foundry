@@ -2,495 +2,487 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StrictData #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE ConstraintKinds #-}
--- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 --                                             // Foundry.Core.Effects.Graded
--- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 --
 --     "The sky above the port was the color of television, tuned to a dead
 --      channel."
 --
 --                                                              — Neuromancer
 --
--- Graded monad for Foundry operations, built on Orchard & Petricek's
--- effect-monad library (Control.Effect).
+-- Graded monad for Foundry operations with cost/effect tracking.
+-- Ported from straylight-llm production code.
 --
--- The grade parameter is a type-level sorted set of GradeLabel atoms
--- from Foundry.Core.Effects.Grade. Composition unions the sets:
+-- Following the aleph cube architecture from Continuity.lean, this module
+-- provides:
 --
---     f : FoundryM '[Net] a
---     g : FoundryM '[Auth] b
---     f >>= \_ -> g : FoundryM '[Net, Auth] b    -- via Union
+--   - GatewayGrade: Cost tracking (latency, token counts, cache hits)
+--   - GatewayCoEffect: Resource access tracking (HTTP, Auth, Config)
+--   - GatewayProvenance: Audit trail for requests
+--   - GatewayM: Graded monad combining all tracking
 --
--- Runtime tracking (latency, tokens, provenance, coeffects) is still
--- accumulated at the value level — the type-level grade is a *static
--- upper bound* on what effects are permitted, while the value-level
--- data records what actually happened.
+-- Co-effect equations (verifiable properties):
 --
--- Usage with QualifiedDo:
+--   - Monotonicity: cost(g1 >> g2) >= max(cost g1, cost g2)
+--   - Associativity: (m >>= f) >>= g = m >>= (\x -> f x >>= g)
+--   - Idempotency: Cached responses have zero latency cost
 --
---     {-# LANGUAGE QualifiedDo #-}
---     import Foundry.Core.Effects.Do qualified as F
---
---     handleRequest :: Request -> FoundryM '[Net, Auth, Crypto] Response
---     handleRequest req = F.do
---       provider <- selectProvider req        -- Pure, widened automatically
---       response <- callUpstream provider req -- Net ∪ Auth
---       proof    <- signResponse response     -- Crypto
---       F.return (response, proof)
---
--- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 module Foundry.Core.Effects.Graded
-  ( -- * Foundry Grade (value-level cost tracking)
-    FoundryGrade
-      ( FoundryGrade
-      , fgLatencyMs
-      , fgInputTokens
-      , fgOutputTokens
-      , fgProviderCalls
-      , fgRetries
-      , fgCacheHits
-      , fgCacheMisses
+  ( -- * Gateway Grade
+    GatewayGrade
+      ( GatewayGrade
+      , ggLatencyMs
+      , ggInputTokens
+      , ggOutputTokens
+      , ggProviderCalls
+      , ggRetries
+      , ggCacheHits
+      , ggCacheMisses
       )
   , emptyGrade
   , combineGrades
   , gradeFromLatency
 
-    -- * Foundry CoEffect (value-level resource tracking)
-  , FoundryCoEffect (FoundryCoEffect, fceHttpAccess, fceAuthUsage, fceConfigAccess)
+    -- * Gateway Co-Effect
+  , GatewayCoEffect (GatewayCoEffect, gceHttpAccess, gceAuthUsage, gceConfigAccess)
   , emptyCoEffect
   , HttpAccess (HttpAccess, haUrl, haMethod, haTimestamp, haStatusCode)
   , AuthUsage (AuthUsage, auProvider, auScope, auTimestamp)
   , ConfigAccess (ConfigAccess, caKey, caTimestamp)
 
-    -- * Foundry Provenance
-  , FoundryProvenance
-      ( FoundryProvenance
-      , fpRequestId
-      , fpProvidersUsed
-      , fpModelsUsed
-      , fpTimestamp
-      , fpClientIp
+    -- * Gateway Provenance
+  , GatewayProvenance
+      ( GatewayProvenance
+      , gpRequestId
+      , gpProvidersUsed
+      , gpModelsUsed
+      , gpTimestamp
+      , gpClientIp
       )
   , emptyProvenance
 
-    -- * Graded Monad (type-level indexed)
-  , FoundryM (FoundryM, unFoundryM)
-  , runFoundryM
-  , runFoundryMPure
+    -- * Gateway Graded Monad
+  , GatewayM (GatewayM, unGatewayM)
+  , runGatewayM
+  , runGatewayMPure
+  , liftGatewayIO
 
-    -- * Primitive effect operations (each tags the type-level grade)
-  , liftPure
-  , liftNet
-  , liftAuth
-  , liftConfig
-  , liftLog
-  , liftCrypto
-  , liftIO'
-
-    -- * Cost tracking
+    -- * Cost Tracking Operations
   , withLatency
   , withTokens
   , withCacheHit
   , withCacheMiss
   , withRetry
 
-    -- * CoEffect recording
+    -- * Co-Effect Recording
   , recordHttpAccess
   , recordAuthUsage
   , recordConfigAccess
 
-    -- * Provenance recording
+    -- * Provenance Recording
   , recordProvider
   , recordModel
   , recordRequestId
 
-    -- * Grade inspection
+    -- * Grade Inspection
   , getGrade
   , getCoEffect
   , getProvenance
   , shouldCacheResponse
-
-    -- * Re-exports for grade construction
-  , module Foundry.Core.Effects.Grade
   ) where
 
 import Control.DeepSeq (NFData (rnf))
-import Control.Effect (Effect (..))
-import Data.Kind (Type)
+import Control.Monad (ap)
 import Data.Set (Set)
 import Data.Set qualified as Set
 import Data.Text (Text)
 import Data.Time (UTCTime, getCurrentTime, diffUTCTime)
 import GHC.Generics (Generic)
 
-import Foundry.Core.Effects.Grade
-
 
 -- ════════════════════════════════════════════════════════════════════════════
---                                                           // foundry grade
+--                                                             // gateway grade
 -- ════════════════════════════════════════════════════════════════════════════
 
--- | Value-level cost accumulator. Tracks what actually happened at runtime.
--- This is orthogonal to the type-level grade — the grade says what's
--- *permitted*, this records what *occurred*.
-data FoundryGrade = FoundryGrade
-  { fgLatencyMs     :: !Int
-  , fgInputTokens   :: !Int
-  , fgOutputTokens  :: !Int
-  , fgProviderCalls :: !Int
-  , fgRetries       :: !Int
-  , fgCacheHits     :: !Int
-  , fgCacheMisses   :: !Int
+-- | Gateway-specific grade tracking request costs
+data GatewayGrade = GatewayGrade
+  { -- | Total latency in milliseconds
+    ggLatencyMs :: !Int
+    -- | Input tokens processed
+  , ggInputTokens :: !Int
+    -- | Output tokens generated
+  , ggOutputTokens :: !Int
+    -- | Number of provider calls made
+  , ggProviderCalls :: !Int
+    -- | Number of retries (fallback attempts)
+  , ggRetries :: !Int
+    -- | Cache hits
+  , ggCacheHits :: !Int
+    -- | Cache misses
+  , ggCacheMisses :: !Int
   }
   deriving stock (Show, Eq, Generic)
 
-instance NFData FoundryGrade where
-  rnf FoundryGrade {..} =
-    rnf fgLatencyMs `seq` rnf fgInputTokens `seq`
-    rnf fgOutputTokens `seq` rnf fgProviderCalls `seq`
-    rnf fgRetries `seq` rnf fgCacheHits `seq` rnf fgCacheMisses
+instance NFData GatewayGrade where
+  rnf GatewayGrade {..} =
+    rnf ggLatencyMs `seq`
+      rnf ggInputTokens `seq`
+        rnf ggOutputTokens `seq`
+          rnf ggProviderCalls `seq`
+            rnf ggRetries `seq`
+              rnf ggCacheHits `seq`
+                rnf ggCacheMisses
 
-instance Semigroup FoundryGrade where
-  g1 <> g2 = FoundryGrade
-    { fgLatencyMs     = fgLatencyMs g1     + fgLatencyMs g2
-    , fgInputTokens   = fgInputTokens g1   + fgInputTokens g2
-    , fgOutputTokens  = fgOutputTokens g1  + fgOutputTokens g2
-    , fgProviderCalls = fgProviderCalls g1  + fgProviderCalls g2
-    , fgRetries       = fgRetries g1       + fgRetries g2
-    , fgCacheHits     = fgCacheHits g1     + fgCacheHits g2
-    , fgCacheMisses   = fgCacheMisses g1   + fgCacheMisses g2
+instance Semigroup GatewayGrade where
+  g1 <> g2 = GatewayGrade
+    { ggLatencyMs = ggLatencyMs g1 + ggLatencyMs g2
+    , ggInputTokens = ggInputTokens g1 + ggInputTokens g2
+    , ggOutputTokens = ggOutputTokens g1 + ggOutputTokens g2
+    , ggProviderCalls = ggProviderCalls g1 + ggProviderCalls g2
+    , ggRetries = ggRetries g1 + ggRetries g2
+    , ggCacheHits = ggCacheHits g1 + ggCacheHits g2
+    , ggCacheMisses = ggCacheMisses g1 + ggCacheMisses g2
     }
 
-instance Monoid FoundryGrade where
+instance Monoid GatewayGrade where
   mempty = emptyGrade
 
-emptyGrade :: FoundryGrade
-emptyGrade = FoundryGrade 0 0 0 0 0 0 0
+-- | Empty grade (identity for combineGrades)
+emptyGrade :: GatewayGrade
+emptyGrade = GatewayGrade
+  { ggLatencyMs = 0
+  , ggInputTokens = 0
+  , ggOutputTokens = 0
+  , ggProviderCalls = 0
+  , ggRetries = 0
+  , ggCacheHits = 0
+  , ggCacheMisses = 0
+  }
 
-combineGrades :: FoundryGrade -> FoundryGrade -> FoundryGrade
+-- | Combine two grades (monoid operation)
+combineGrades :: GatewayGrade -> GatewayGrade -> GatewayGrade
 combineGrades = (<>)
 
-gradeFromLatency :: Int -> FoundryGrade
-gradeFromLatency ms = emptyGrade { fgLatencyMs = ms, fgProviderCalls = 1 }
+-- | Create grade from latency measurement
+gradeFromLatency :: Int -> GatewayGrade
+gradeFromLatency ms = emptyGrade { ggLatencyMs = ms, ggProviderCalls = 1 }
 
 
 -- ════════════════════════════════════════════════════════════════════════════
---                                                        // foundry co-effect
+--                                                          // gateway co-effect
 -- ════════════════════════════════════════════════════════════════════════════
 
+-- | HTTP access record (matching Continuity.lean NetworkAccess)
 data HttpAccess = HttpAccess
-  { haUrl        :: !Text
-  , haMethod     :: !Text
-  , haTimestamp  :: !UTCTime
+  { haUrl :: !Text
+  , haMethod :: !Text
+  , haTimestamp :: !UTCTime
   , haStatusCode :: !(Maybe Int)
   }
   deriving stock (Show, Eq, Ord, Generic)
 
 instance NFData HttpAccess where
   rnf HttpAccess {..} =
-    rnf haUrl `seq` rnf haMethod `seq` rnf haTimestamp `seq` rnf haStatusCode
+    rnf haUrl `seq`
+      rnf haMethod `seq`
+        rnf haTimestamp `seq`
+          rnf haStatusCode
 
+-- | Auth usage record (matching Continuity.lean AuthUsage)
 data AuthUsage = AuthUsage
-  { auProvider  :: !Text
-  , auScope     :: !Text
+  { auProvider :: !Text
+  , auScope :: !Text
   , auTimestamp :: !UTCTime
   }
   deriving stock (Show, Eq, Ord, Generic)
 
 instance NFData AuthUsage where
-  rnf AuthUsage {..} = rnf auProvider `seq` rnf auScope `seq` rnf auTimestamp
+  rnf AuthUsage {..} =
+    rnf auProvider `seq`
+      rnf auScope `seq`
+        rnf auTimestamp
 
+-- | Config access record
 data ConfigAccess = ConfigAccess
-  { caKey       :: !Text
+  { caKey :: !Text
   , caTimestamp :: !UTCTime
   }
   deriving stock (Show, Eq, Ord, Generic)
 
 instance NFData ConfigAccess where
-  rnf ConfigAccess {..} = rnf caKey `seq` rnf caTimestamp
+  rnf ConfigAccess {..} =
+    rnf caKey `seq`
+      rnf caTimestamp
 
-data FoundryCoEffect = FoundryCoEffect
-  { fceHttpAccess   :: !(Set HttpAccess)
-  , fceAuthUsage    :: !(Set AuthUsage)
-  , fceConfigAccess :: !(Set ConfigAccess)
+-- | Co-effect tracking for gateway operations (what resources were accessed)
+data GatewayCoEffect = GatewayCoEffect
+  { -- | HTTP calls made
+    gceHttpAccess :: !(Set HttpAccess)
+    -- | Auth credentials used
+  , gceAuthUsage :: !(Set AuthUsage)
+    -- | Config values accessed
+  , gceConfigAccess :: !(Set ConfigAccess)
   }
   deriving stock (Show, Eq, Generic)
 
-instance NFData FoundryCoEffect where
-  rnf FoundryCoEffect {..} =
-    rnf fceHttpAccess `seq` rnf fceAuthUsage `seq` rnf fceConfigAccess
+instance NFData GatewayCoEffect where
+  rnf GatewayCoEffect {..} =
+    rnf gceHttpAccess `seq`
+      rnf gceAuthUsage `seq`
+        rnf gceConfigAccess
 
-instance Semigroup FoundryCoEffect where
-  ce1 <> ce2 = FoundryCoEffect
-    { fceHttpAccess   = fceHttpAccess ce1   <> fceHttpAccess ce2
-    , fceAuthUsage    = fceAuthUsage ce1    <> fceAuthUsage ce2
-    , fceConfigAccess = fceConfigAccess ce1 <> fceConfigAccess ce2
+instance Semigroup GatewayCoEffect where
+  ce1 <> ce2 = GatewayCoEffect
+    { gceHttpAccess = gceHttpAccess ce1 <> gceHttpAccess ce2
+    , gceAuthUsage = gceAuthUsage ce1 <> gceAuthUsage ce2
+    , gceConfigAccess = gceConfigAccess ce1 <> gceConfigAccess ce2
     }
 
-instance Monoid FoundryCoEffect where
+instance Monoid GatewayCoEffect where
   mempty = emptyCoEffect
 
-emptyCoEffect :: FoundryCoEffect
-emptyCoEffect = FoundryCoEffect Set.empty Set.empty Set.empty
+-- | Empty co-effect
+emptyCoEffect :: GatewayCoEffect
+emptyCoEffect = GatewayCoEffect
+  { gceHttpAccess = Set.empty
+  , gceAuthUsage = Set.empty
+  , gceConfigAccess = Set.empty
+  }
 
 
 -- ════════════════════════════════════════════════════════════════════════════
---                                                       // foundry provenance
+--                                                         // gateway provenance
 -- ════════════════════════════════════════════════════════════════════════════
 
-data FoundryProvenance = FoundryProvenance
-  { fpRequestId     :: !(Maybe Text)
-  , fpProvidersUsed :: ![Text]
-  , fpModelsUsed    :: ![Text]
-  , fpTimestamp     :: !(Maybe UTCTime)
-  , fpClientIp      :: !(Maybe Text)
+-- | Provenance tracking for gateway requests
+data GatewayProvenance = GatewayProvenance
+  { -- | Unique request ID
+    gpRequestId :: !(Maybe Text)
+    -- | Provider(s) used (in order)
+  , gpProvidersUsed :: ![Text]
+    -- | Model(s) requested
+  , gpModelsUsed :: ![Text]
+    -- | Timestamp of operation
+  , gpTimestamp :: !(Maybe UTCTime)
+    -- | Client IP (if available)
+  , gpClientIp :: !(Maybe Text)
   }
   deriving stock (Show, Eq, Generic)
 
-instance NFData FoundryProvenance where
-  rnf FoundryProvenance {..} =
-    rnf fpRequestId `seq` rnf fpProvidersUsed `seq`
-    rnf fpModelsUsed `seq` rnf fpTimestamp `seq` rnf fpClientIp
+instance NFData GatewayProvenance where
+  rnf GatewayProvenance {..} =
+    rnf gpRequestId `seq`
+      rnf gpProvidersUsed `seq`
+        rnf gpModelsUsed `seq`
+          rnf gpTimestamp `seq`
+            rnf gpClientIp
 
-emptyProvenance :: FoundryProvenance
-emptyProvenance = FoundryProvenance Nothing [] [] Nothing Nothing
+-- | Empty provenance
+emptyProvenance :: GatewayProvenance
+emptyProvenance = GatewayProvenance
+  { gpRequestId = Nothing
+  , gpProvidersUsed = []
+  , gpModelsUsed = []
+  , gpTimestamp = Nothing
+  , gpClientIp = Nothing
+  }
 
-combineProvenance :: FoundryProvenance -> FoundryProvenance -> FoundryProvenance
-combineProvenance p1 p2 = FoundryProvenance
-  { fpRequestId     = fpRequestId p2     <|> fpRequestId p1
-  , fpProvidersUsed = fpProvidersUsed p1  ++ fpProvidersUsed p2
-  , fpModelsUsed    = fpModelsUsed p1     ++ fpModelsUsed p2
-  , fpTimestamp     = fpTimestamp p1      <|> fpTimestamp p2
-  , fpClientIp      = fpClientIp p1      <|> fpClientIp p2
+-- | Combine provenances (later takes precedence for Maybe fields)
+combineProvenance :: GatewayProvenance -> GatewayProvenance -> GatewayProvenance
+combineProvenance p1 p2 = GatewayProvenance
+  { gpRequestId = gpRequestId p2 <|> gpRequestId p1
+  , gpProvidersUsed = gpProvidersUsed p1 ++ gpProvidersUsed p2
+  , gpModelsUsed = gpModelsUsed p1 ++ gpModelsUsed p2
+  , gpTimestamp = gpTimestamp p1 <|> gpTimestamp p2
+  , gpClientIp = gpClientIp p1 <|> gpClientIp p2
   }
   where
     Nothing <|> y = y
-    x       <|> _ = x
+    x <|> _ = x
 
 
 -- ════════════════════════════════════════════════════════════════════════════
---                                               // graded monad (the core)
+--                                                       // gateway graded monad
 -- ════════════════════════════════════════════════════════════════════════════
 
--- | The Foundry graded monad.
---
--- @FoundryM es a@ is a computation that:
---   - May perform effects in the set @es@ (type-level, checked at compile time)
---   - Produces a value of type @a@
---   - Accumulates runtime cost data in FoundryGrade, FoundryProvenance,
---     and FoundryCoEffect (value-level, available at runtime)
---
--- The phantom type parameter @es :: [GradeLabel]@ is the grade.
--- It's a sorted set of effect labels. GHC enforces at compile time that
--- operations requiring 'Net are only called from contexts where 'Net is
--- in the grade.
-newtype FoundryM (es :: [GradeLabel]) a = FoundryM
-  { unFoundryM :: IO (a, FoundryGrade, FoundryProvenance, FoundryCoEffect)
+-- | Graded monad for gateway operations
+-- Tracks grade, provenance, and co-effects
+newtype GatewayM a = GatewayM
+  { unGatewayM :: IO (a, GatewayGrade, GatewayProvenance, GatewayCoEffect)
   }
 
--- | FoundryM is an Orchard & Petricek graded monad (Effect from effect-monad).
---
--- The grade algebra:
---   Unit  = '[]              (pure computation, no effects)
---   Plus  = Union            (set union of effect labels)
---   Inv   = ()               (no additional constraints on composition)
-instance Effect FoundryM where
-  type Unit FoundryM = Pure                -- '[] — the empty effect set
-  type Plus FoundryM f g = Union f g       -- set union
-  type Inv  FoundryM f g = ()              -- no constraints on composition
+instance Functor GatewayM where
+  fmap f (GatewayM m) = GatewayM $ do
+    (a, g, p, ce) <- m
+    pure (f a, g, p, ce)
 
-  return a = FoundryM $ pure (a, emptyGrade, emptyProvenance, emptyCoEffect)
+instance Applicative GatewayM where
+  pure a = GatewayM $ pure (a, emptyGrade, emptyProvenance, emptyCoEffect)
+  (<*>) = ap
 
-  (FoundryM m) >>= f = FoundryM $ do
+instance Monad GatewayM where
+  GatewayM m >>= f = GatewayM $ do
     (a, g1, p1, ce1) <- m
-    (b, g2, p2, ce2) <- unFoundryM (f a)
-    pure (b, g1 <> g2, combineProvenance p1 p2, ce1 <> ce2)
+    (b, g2, p2, ce2) <- unGatewayM (f a)
+    pure (b, combineGrades g1 g2, combineProvenance p1 p2, ce1 <> ce2)
 
--- | Run a graded computation. The grade @es@ is erased at runtime —
--- it exists only to constrain composition at compile time.
-runFoundryM :: FoundryM es a -> IO (a, FoundryGrade, FoundryProvenance, FoundryCoEffect)
-runFoundryM = unFoundryM
+-- | Run gateway computation and return result with all tracking
+runGatewayM :: GatewayM a -> IO (a, GatewayGrade, GatewayProvenance, GatewayCoEffect)
+runGatewayM = unGatewayM
 
--- | Run discarding tracking data.
-runFoundryMPure :: FoundryM es a -> IO a
-runFoundryMPure m = (\(a, _, _, _) -> a) <$> runFoundryM m
+-- | Run gateway computation discarding tracking
+runGatewayMPure :: GatewayM a -> IO a
+runGatewayMPure m = (\(a, _, _, _) -> a) <$> runGatewayM m
 
-
--- ════════════════════════════════════════════════════════════════════════════
---                                                    // primitive lift points
--- ════════════════════════════════════════════════════════════════════════════
-
--- Each lift point tags the type-level grade with exactly the label(s)
--- corresponding to the kind of effect being performed. Callers of these
--- functions get their grade widened automatically by the Effect instance's
--- Plus (= Union).
-
--- | Lift a pure (no-IO) value. Grade: Pure ('[]). 
-liftPure :: a -> FoundryM Pure a
-liftPure a = FoundryM $ pure (a, emptyGrade, emptyProvenance, emptyCoEffect)
-
--- | Lift an IO action that performs network access.
--- Grade: '[Net]. This is the *only* way to introduce 'Net into the grade.
-liftNet :: IO a -> FoundryM '[ 'Net ] a
-liftNet action = FoundryM $ do
-  result <- action
-  pure (result, emptyGrade, emptyProvenance, emptyCoEffect)
-
--- | Lift an IO action that uses authentication credentials.
-liftAuth :: IO a -> FoundryM '[ 'Auth ] a
-liftAuth action = FoundryM $ do
-  result <- action
-  pure (result, emptyGrade, emptyProvenance, emptyCoEffect)
-
--- | Lift an IO action that reads configuration.
-liftConfig :: IO a -> FoundryM '[ 'Config ] a
-liftConfig action = FoundryM $ do
-  result <- action
-  pure (result, emptyGrade, emptyProvenance, emptyCoEffect)
-
--- | Lift a logging action.
-liftLog :: IO a -> FoundryM '[ 'Log ] a
-liftLog action = FoundryM $ do
-  result <- action
-  pure (result, emptyGrade, emptyProvenance, emptyCoEffect)
-
--- | Lift a cryptographic operation.
-liftCrypto :: IO a -> FoundryM '[ 'Crypto ] a
-liftCrypto action = FoundryM $ do
-  result <- action
-  pure (result, emptyGrade, emptyProvenance, emptyCoEffect)
-
--- | Escape hatch: lift arbitrary IO with full effect set.
--- Use sparingly — this defeats the purpose of grading.
--- Every use should have a comment justifying why.
-liftIO' :: IO a -> FoundryM Full a
-liftIO' action = FoundryM $ do
+-- | Lift IO action into GatewayM without tracking
+liftGatewayIO :: IO a -> GatewayM a
+liftGatewayIO action = GatewayM $ do
   result <- action
   pure (result, emptyGrade, emptyProvenance, emptyCoEffect)
 
 
 -- ════════════════════════════════════════════════════════════════════════════
---                                                    // cost tracking (value)
+--                                                      // cost tracking operations
 -- ════════════════════════════════════════════════════════════════════════════
 
--- | Measure latency of a network operation.
--- Note: this is tagged '[Net] because measuring latency implies network I/O.
-withLatency :: IO a -> FoundryM '[ 'Net ] a
-withLatency action = FoundryM $ do
-  start  <- getCurrentTime
+-- | Lift IO action and measure latency
+withLatency :: IO a -> GatewayM a
+withLatency action = GatewayM $ do
+  start <- getCurrentTime
   result <- action
-  end    <- getCurrentTime
+  end <- getCurrentTime
   let ms = round (diffUTCTime end start * 1000)
   pure (result, gradeFromLatency ms, emptyProvenance, emptyCoEffect)
 
--- | Add token counts. Grade-preserving (doesn't add new effect labels).
-withTokens :: Int -> Int -> FoundryM es a -> FoundryM es a
-withTokens input output (FoundryM m) = FoundryM $ do
+-- | Add token counts to grade
+withTokens :: Int -> Int -> GatewayM a -> GatewayM a
+withTokens input output (GatewayM m) = GatewayM $ do
   (a, g, p, ce) <- m
-  let g' = g { fgInputTokens  = fgInputTokens g + input
-             , fgOutputTokens = fgOutputTokens g + output }
+  let g' = g
+        { ggInputTokens = ggInputTokens g + input
+        , ggOutputTokens = ggOutputTokens g + output
+        }
   pure (a, g', p, ce)
 
--- | Record cache hit. Grade-preserving.
-withCacheHit :: FoundryM es a -> FoundryM es a
-withCacheHit (FoundryM m) = FoundryM $ do
+-- | Record cache hit
+withCacheHit :: GatewayM a -> GatewayM a
+withCacheHit (GatewayM m) = GatewayM $ do
   (a, g, p, ce) <- m
-  pure (a, g { fgCacheHits = fgCacheHits g + 1 }, p, ce)
+  let g' = g { ggCacheHits = ggCacheHits g + 1 }
+  pure (a, g', p, ce)
 
--- | Record cache miss. Grade-preserving.
-withCacheMiss :: FoundryM es a -> FoundryM es a
-withCacheMiss (FoundryM m) = FoundryM $ do
+-- | Record cache miss
+withCacheMiss :: GatewayM a -> GatewayM a
+withCacheMiss (GatewayM m) = GatewayM $ do
   (a, g, p, ce) <- m
-  pure (a, g { fgCacheMisses = fgCacheMisses g + 1 }, p, ce)
+  let g' = g { ggCacheMisses = ggCacheMisses g + 1 }
+  pure (a, g', p, ce)
 
--- | Record retry. Grade-preserving.
-withRetry :: FoundryM es a -> FoundryM es a
-withRetry (FoundryM m) = FoundryM $ do
+-- | Record a retry attempt
+withRetry :: GatewayM a -> GatewayM a
+withRetry (GatewayM m) = GatewayM $ do
   (a, g, p, ce) <- m
-  pure (a, g { fgRetries = fgRetries g + 1 }, p, ce)
+  let g' = g { ggRetries = ggRetries g + 1 }
+  pure (a, g', p, ce)
 
 
 -- ════════════════════════════════════════════════════════════════════════════
---                                           // co-effect recording (value)
+--                                                       // co-effect recording
 -- ════════════════════════════════════════════════════════════════════════════
 
--- | Record HTTP access. Introduces 'Net into the grade.
-recordHttpAccess :: Text -> Text -> Maybe Int -> FoundryM '[ 'Net ] ()
-recordHttpAccess url method status = FoundryM $ do
+-- | Record HTTP access
+recordHttpAccess :: Text -> Text -> Maybe Int -> GatewayM ()
+recordHttpAccess url method status = GatewayM $ do
   now <- getCurrentTime
-  let access = HttpAccess url method now status
-      ce = emptyCoEffect { fceHttpAccess = Set.singleton access }
+  let access = HttpAccess
+        { haUrl = url
+        , haMethod = method
+        , haTimestamp = now
+        , haStatusCode = status
+        }
+      ce = emptyCoEffect { gceHttpAccess = Set.singleton access }
   pure ((), emptyGrade, emptyProvenance, ce)
 
--- | Record auth usage. Introduces 'Auth into the grade.
-recordAuthUsage :: Text -> Text -> FoundryM '[ 'Auth ] ()
-recordAuthUsage provider scope = FoundryM $ do
+-- | Record auth usage
+recordAuthUsage :: Text -> Text -> GatewayM ()
+recordAuthUsage provider scope = GatewayM $ do
   now <- getCurrentTime
-  let usage = AuthUsage provider scope now
-      ce = emptyCoEffect { fceAuthUsage = Set.singleton usage }
+  let usage = AuthUsage
+        { auProvider = provider
+        , auScope = scope
+        , auTimestamp = now
+        }
+      ce = emptyCoEffect { gceAuthUsage = Set.singleton usage }
   pure ((), emptyGrade, emptyProvenance, ce)
 
--- | Record config access. Introduces 'Config into the grade.
-recordConfigAccess :: Text -> FoundryM '[ 'Config ] ()
-recordConfigAccess key = FoundryM $ do
+-- | Record config access
+recordConfigAccess :: Text -> GatewayM ()
+recordConfigAccess key = GatewayM $ do
   now <- getCurrentTime
-  let access = ConfigAccess key now
-      ce = emptyCoEffect { fceConfigAccess = Set.singleton access }
+  let access = ConfigAccess
+        { caKey = key
+        , caTimestamp = now
+        }
+      ce = emptyCoEffect { gceConfigAccess = Set.singleton access }
   pure ((), emptyGrade, emptyProvenance, ce)
 
 
 -- ════════════════════════════════════════════════════════════════════════════
---                                           // provenance recording (value)
+--                                                      // provenance recording
 -- ════════════════════════════════════════════════════════════════════════════
 
--- | Record provider used. Pure — provenance is bookkeeping, not an effect.
-recordProvider :: Text -> FoundryM Pure ()
-recordProvider provider = FoundryM $
-  pure ((), emptyGrade, emptyProvenance { fpProvidersUsed = [provider] }, emptyCoEffect)
+-- | Record provider used
+recordProvider :: Text -> GatewayM ()
+recordProvider provider = GatewayM $ do
+  let p = emptyProvenance { gpProvidersUsed = [provider] }
+  pure ((), emptyGrade, p, emptyCoEffect)
 
--- | Record model used. Pure.
-recordModel :: Text -> FoundryM Pure ()
-recordModel model = FoundryM $
-  pure ((), emptyGrade, emptyProvenance { fpModelsUsed = [model] }, emptyCoEffect)
+-- | Record model used
+recordModel :: Text -> GatewayM ()
+recordModel model = GatewayM $ do
+  let p = emptyProvenance { gpModelsUsed = [model] }
+  pure ((), emptyGrade, p, emptyCoEffect)
 
--- | Record request ID. Pure.
-recordRequestId :: Text -> FoundryM Pure ()
-recordRequestId reqId = FoundryM $ do
+-- | Record request ID
+recordRequestId :: Text -> GatewayM ()
+recordRequestId reqId = GatewayM $ do
   now <- getCurrentTime
-  let p = emptyProvenance { fpRequestId = Just reqId, fpTimestamp = Just now }
+  let p = emptyProvenance
+        { gpRequestId = Just reqId
+        , gpTimestamp = Just now
+        }
   pure ((), emptyGrade, p, emptyCoEffect)
 
 
 -- ════════════════════════════════════════════════════════════════════════════
---                                                       // grade inspection
+--                                                         // grade inspection
 -- ════════════════════════════════════════════════════════════════════════════
 
--- | Inspect accumulated grade. Pure.
-getGrade :: FoundryM Pure FoundryGrade
-getGrade = FoundryM $ pure (emptyGrade, emptyGrade, emptyProvenance, emptyCoEffect)
+-- | Get current grade
+getGrade :: GatewayM GatewayGrade
+getGrade = GatewayM $ pure (emptyGrade, emptyGrade, emptyProvenance, emptyCoEffect)
 
--- | Inspect accumulated co-effect. Pure.
-getCoEffect :: FoundryM Pure FoundryCoEffect
-getCoEffect = FoundryM $ pure (emptyCoEffect, emptyGrade, emptyProvenance, emptyCoEffect)
+-- | Get current co-effect
+getCoEffect :: GatewayM GatewayCoEffect
+getCoEffect = GatewayM $ pure (emptyCoEffect, emptyGrade, emptyProvenance, emptyCoEffect)
 
--- | Inspect accumulated provenance. Pure.
-getProvenance :: FoundryM Pure FoundryProvenance
-getProvenance = FoundryM $ pure (emptyProvenance, emptyGrade, emptyProvenance, emptyCoEffect)
+-- | Get current provenance
+getProvenance :: GatewayM GatewayProvenance
+getProvenance = GatewayM $ pure (emptyProvenance, emptyGrade, emptyProvenance, emptyCoEffect)
 
--- | Should this response be cached? Based on cost heuristics.
-shouldCacheResponse :: FoundryGrade -> Bool
+-- | Determine if response should be cached based on grade
+shouldCacheResponse :: GatewayGrade -> Bool
 shouldCacheResponse g =
-  fgLatencyMs g > 100 || fgRetries g > 0 || fgCacheMisses g > 0
+  ggLatencyMs g > 100          -- More than 100ms latency
+    || ggRetries g > 0         -- Any retries occurred
+    || ggCacheMisses g > 0     -- Cache miss occurred
