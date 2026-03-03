@@ -16,3 +16,7 @@
 [submodule "sensenet"]
 	path = sensenet
 	url = https://github.com/straylight-software/sensenet.git
+[submodule "hydrogen"]
+	path = hydrogen
+	url = https://github.com/justinfleek/hydrogen.git
+	branch = jpyxal-0x02
