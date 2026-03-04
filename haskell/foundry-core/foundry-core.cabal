@@ -133,6 +133,11 @@ library
     Foundry.Core.Scrape.Job
     Foundry.Core.Scrape.Worker
     Foundry.Core.Scrape.Protocol
+    -- Wire: FWIRE binary format for brand ingestion (NO JSON)
+    Foundry.Core.Wire.Types
+    Foundry.Core.Wire.Varint
+    Foundry.Core.Wire.Encode
+    Foundry.Core.Wire.Decode
     -- NOTE: Wai modules require io_uring (Linux kernel >= 5.1)
     -- Enable when io-uring package is available:
     -- Foundry.Core.Evring.Wai
@@ -189,6 +194,7 @@ test-suite foundry-core-test
     Test.Foundry.Core.Brand.GraphicElements
     Test.Foundry.Core.Effect
     Test.Foundry.Core.Effects.Graded
+    Test.Foundry.Core.Wire
     Foundry.Core.Evring.TestSigil
   build-depends:
     , base            >= 4.18  && < 5

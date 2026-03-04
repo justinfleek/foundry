@@ -239,6 +239,7 @@ parseHex s
 
     hexDigit :: Char -> Int
     hexDigit c
+      | not (isHexDigit c) = 0  -- Invalid hex digit
       | c >= '0' && c <= '9' = fromEnum c - fromEnum '0'
       | c >= 'a' && c <= 'f' = fromEnum c - fromEnum 'a' + 10
       | c >= 'A' && c <= 'F' = fromEnum c - fromEnum 'A' + 10

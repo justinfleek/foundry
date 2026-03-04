@@ -20,6 +20,7 @@ import Test.Foundry.Core.Brand.UIElements qualified as UIElements
 import Test.Foundry.Core.Brand.GraphicElements qualified as GraphicElements
 import Test.Foundry.Core.Effect qualified as Effect
 import Test.Foundry.Core.Effects.Graded qualified as EffectsGraded
+import Test.Foundry.Core.Wire qualified as Wire
 import Test.Tasty (defaultMain, testGroup)
 
 main :: IO ()
@@ -39,4 +40,5 @@ main =
       , GraphicElements.tests
       , Effect.tests
       , EffectsGraded.tests
+      , Wire.tests
       ]
