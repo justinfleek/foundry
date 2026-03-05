@@ -26,6 +26,7 @@ import Foundry.Cornell
 -- NOTE: The following modules depend on external packages not yet configured:
 -- - Foundry.Brand (requires Hydrogen)
 -- - Foundry.Budget (requires Mathlib)
+-- - Foundry.GPU (requires Mathlib) - GPU co-effect algebra invariants
 -- - Foundry.Timestamp (requires Mathlib)
 -- - Foundry.Cornell.SSP (3000+ line file with crypto, needs significant work)
 -- - Foundry.Continuity (full coeffect algebra)

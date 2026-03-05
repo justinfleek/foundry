@@ -29,7 +29,15 @@ package foundry where
   ]
 
 -- ═══════════════════════════════════════════════════════════════════════════════
--- LIBRARIES (all local - no external git dependencies)
+-- DEPENDENCIES
+-- ═══════════════════════════════════════════════════════════════════════════════
+
+-- Mathlib for omega tactic and ring_nf
+require mathlib from git
+  "https://github.com/leanprover-community/mathlib4" @ "v4.28.0"
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- LIBRARIES
 -- ═══════════════════════════════════════════════════════════════════════════════
 
 -- Main entry point - imports all submodules
